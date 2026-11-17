@@ -58,6 +58,19 @@ export const views: ViewEntry[] = [
       { kind: 'seed', label: 'Compost: untagged notes' },
     ],
   },
+  {
+    id: 'timeline',
+    label: 'Timeline',
+    icon: 'sparkles',
+    renderer: 'pixi',
+    load: () => import('./timeline').then((m) => m.timelineView),
+    legend: [
+      { kind: 'time', label: 'Across: date created or updated (toggle)' },
+      { kind: 'position', label: 'Lanes: top-level folders' },
+      ...common,
+      { kind: 'line', label: 'Constellation lines: links' },
+    ],
+  },
 ];
 
 export const DEFAULT_VIEW = 'force';
