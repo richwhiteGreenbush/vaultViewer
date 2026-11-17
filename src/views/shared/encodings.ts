@@ -17,3 +17,19 @@ export function noteColor(note: Note | undefined, theme: ThemePalette): string {
 export function nodeOrder(graph: VaultGraph): string[] {
   return [...graph.notes.keys(), ...[...graph.ghosts].filter((g) => !graph.notes.has(g))];
 }
+
+/**
+ * Recency glow (PLAN §7 Phase 2): 1 for the 10% most recently updated notes, fading linearly to 0 at the
+ * 60th percentile. Ghosts get 0.
+ */
+export function recencyGlow(graph: VaultGraph, ids: string[]): Float32Array {
+  const notes = ids.map((id, i) => ({ i, t: graph.notes.get(id)?.updated })).filter((x) => x.t !== undefined);
+  notes.sort((a, b) => (b.t as number) - (a.t as number));
+  const out = new Float32Array(ids.length);
+  const n = notes.length || 1;
+  notes.forEach(({ i }, rank) => {
+    const pct = rank / n;
+    out[i] = pct < 0.1 ? 1 : Math.max(0, 0.6 * (1 - (pct - 0.1) / 0.5));
+  });
+  return out;
+}

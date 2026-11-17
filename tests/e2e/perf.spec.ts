@@ -25,7 +25,7 @@ test.describe('performance: 5,000 notes / 20,000 links @perf', () => {
     }
   });
 
-  test('parses under 8 s, never blocks the main thread > 200 ms while parsing, pans above 45 fps', async ({
+  test('parses under 8 s, never blocks > 200 ms while parsing, pans above 45 fps, lenses apply under 100 ms', async ({
     page,
   }) => {
     await page.addInitScript(() => {
@@ -101,12 +101,39 @@ test.describe('performance: 5,000 notes / 20,000 links @perf', () => {
       return span > 0 ? ((f.length - 1) * 1000) / span : 0;
     });
 
+    // --- lens updates (apply and remove), measured from the hash change to the next painted frame ---
+    const lensMs = async (hash: string) =>
+      page.evaluate(async (hash) => {
+        const stat = () => document.querySelector('[data-testid="stat-notes"]')?.getAttribute('data-value');
+        const before = stat();
+        const t0 = performance.now();
+        location.hash = hash;
+        await new Promise<void>((resolve) => {
+          const check = () => (stat() !== before ? resolve() : requestAnimationFrame(check));
+          check();
+        });
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+        return performance.now() - t0;
+      }, hash);
+    const lensSamples: number[] = [];
+    for (const tag of ['topic0', 'topic5', 'topic10', 'topic15', 'topic20']) {
+      lensSamples.push(await lensMs(`#t=${tag}`)); // apply
+      lensSamples.push(await lensMs('#')); // remove
+    }
+    const sorted = [...lensSamples].sort((a, b) => a - b);
+    const lensMedianMs = Math.round(sorted[Math.floor(sorted.length / 2)] ?? 0);
+    const lensWorstMs = Math.round(sorted[sorted.length - 1] ?? 0);
+    const lensOver100 = lensSamples.filter((t) => t >= 100).length;
+
     const report = {
       parseMsWorker: Math.round(info?.ms.total ?? 0),
       parseMsWall: Math.round(parseEnd - parseStart),
       maxLongTaskDuringParseMs: Math.round(maxDuringParse),
       maxLongTaskUntilGraphShownMs: Math.round(maxOverall),
       panFps: Math.round(fps),
+      lensMedianMs,
+      lensWorstMs,
+      lensMs: lensSamples.map(Math.round),
       gpu,
     };
     console.log('PERF', JSON.stringify(report));
@@ -114,6 +141,9 @@ test.describe('performance: 5,000 notes / 20,000 links @perf', () => {
 
     expect(report.parseMsWall).toBeLessThan(8_000);
     expect(report.maxLongTaskDuringParseMs).toBeLessThanOrEqual(200);
+    // Typical lens updates must be well under 100 ms; allow one GC/scheduling outlier in ten on a busy machine.
+    expect(report.lensMedianMs).toBeLessThan(60);
+    expect(lensOver100).toBeLessThanOrEqual(1);
     if (/swiftshader|llvmpipe|software/i.test(gpu)) {
       test.info().annotations.push({ type: 'skipped-fps', description: `software renderer: ${gpu}` });
     } else {

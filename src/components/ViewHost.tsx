@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useVaultStore } from '../state/vaultStore';
 import { useViewStore } from '../state/viewStore';
+import { useLensStore, visibleFor } from '../state/lensStore';
+import { useThemeStore } from '../state/themeStore';
 import { viewById } from '../views/registry';
 import type { ViewContext, ViewInstance } from '../views/types';
-import { palettes, DEFAULT_THEME } from '../core/color/palettes';
 import { layoutClient } from '../workers/clients';
-
-const reducedMotion = () =>
-  typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** Mounts the active view (lazy-loaded) and feeds it a ViewContext whenever inputs change. */
 export function ViewHost() {
@@ -17,28 +15,34 @@ export function ViewHost() {
   const vaultHash = useVaultStore((s) => s.vaultHash);
   const activeView = useViewStore((s) => s.activeView);
   const focus = useViewStore((s) => s.focus);
+  const focusDepth = useViewStore((s) => s.focusDepth);
+  const lens = useLensStore((s) => s.lens);
+  const theme = useThemeStore((s) => s.theme);
+  const reducedMotion = useThemeStore((s) => s.reducedMotion);
 
   const ctx = useMemo<ViewContext | null>(() => {
     if (!graph || !vaultHash) return null;
-    const { setFocus, setHover, setLayout } = useViewStore.getState();
+    const { setFocus, setHover, setLayout, setPreviewOpen } = useViewStore.getState();
     return {
       graph,
       vaultHash,
-      visible: { notes: new Set(graph.notes.keys()), links: new Set(graph.links.map((l) => l.id)) },
-      theme: palettes[DEFAULT_THEME],
+      visible: visibleFor(graph, lens),
+      theme,
       focus,
-      reducedMotion: reducedMotion(),
+      focusDepth,
+      reducedMotion,
       layout: layoutClient(),
       onFocus: setFocus,
+      onActivate: () => setPreviewOpen(true),
       onHover: setHover,
       onLayoutStatus: setLayout,
     };
-  }, [graph, vaultHash, focus]);
+  }, [graph, vaultHash, lens, theme, focus, focusDepth, reducedMotion]);
 
   const ctxRef = useRef(ctx);
   useEffect(() => {
     ctxRef.current = ctx;
-    instance.current?.update(ctx as ViewContext);
+    if (ctx) instance.current?.update(ctx);
   }, [ctx]);
 
   const hasGraph = !!ctx;

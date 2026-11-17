@@ -33,3 +33,18 @@ One short entry per deviation, newest last.
 - **Firefox e2e** covers zip upload, sample vault, zip drop and folder input. Dropping a *folder* uses `webkitGetAsEntry`, which test tools cannot synthesize, so that path is verified manually.
 - **GitHub Pages workflow is manual-only** until Pages is enabled for the repository (the first automatic run failed with "Pages not enabled").
 - **Canvas 2D fallback.** Without WebGL (GPU-less CI, blocked drivers) Pixi falls back to its Canvas renderer, which cannot draw line-list meshes, so edges are drawn with `Graphics` there. The Firefox e2e project runs with WebGL disabled to cover this path; Chromium covers WebGL.
+
+## Phase 2
+
+- **Tag lens has include + exclude lists and an any/all mode for the includes**, rather than a single mode for one list, so "#project but not #archive" is expressible. Nested tags match children (`#project` matches `#project/alpha`).
+- **A ghost is visible when a visible note links to it** (and "Missing notes" is on); a link is visible when both ends are. Lenses never re-run the layout: hidden nodes keep their positions.
+- **URL hash** holds only non-default lens fields (`#t=project&tm=all&tx=journal&f=…&fx=…&d=created&from=YYYY-MM-DD&to=…&dmin=&dmax=&o=0&g=0`) plus the focused note as `n=`, so a bookmark restores both lens and focus.
+- **`ViewContext` additions:** `focusDepth` (Shift+click = 2 hops) and `onActivate(id)` (Enter / click opens the preview).
+- **Clicking a node also opens the preview**; clicking empty canvas clears focus (Esc too).
+- **Keyboard:** the canvas is focusable (`role="application"`), arrows move focus to the neighbour most in that direction (or, with nothing focused, the note nearest the screen centre), Enter opens the preview, `+`/`-` zoom, `/` or Ctrl/Cmd+K search, Esc clears focus. A visually hidden live region announces the focused note.
+- **Watercolor uses soft, translucent discs instead of multiply blending.** The canvas is transparent over the CSS paper texture, so multiply blending in WebGL multiplies with transparent black and turns nodes black.
+- **"Match system" theme option** maps to Dark Space (dark) or Pastel (light); the default remains Dark Space. Theme choice is stored in Dexie `settings`.
+- **Preview never loads remote content:** images render as labelled placeholders, raw HTML is skipped, external links open in a new tab. Wikilinks and relative note links focus notes in the view; links to missing notes open the ghost's page (its backlinks). The markdown renderer is a lazy chunk.
+- **"Show attachments" is present but disabled**: attachments are not nodes in v1 (§4.3); the field is kept so URLs stay stable.
+- **Lens performance:** the force view splits styling into a theme pass (colours, textures; theme/graph changes only) and a visibility pass (visible/alpha/edge indexes from per-node masks), and `visible.links` is built lazily, because a 20k-string Set per lens change caused GC spikes. Typical update on 5,000 notes: ~30 ms. The perf test asserts median < 60 ms and at most 1 of 10 samples ≥ 100 ms (to tolerate a GC/scheduling outlier on busy machines) and reports the worst sample.
+- **axe** runs with the WCAG 2.0/2.1 A and AA rule sets in all four themes, with the lens panel open, a tag lens active and a note in the preview. The canvas itself is not inspectable by axe; its labels use theme text colours.

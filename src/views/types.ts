@@ -13,9 +13,12 @@ export interface ViewContext {
   visible: { notes: Set<NoteId>; links: Set<string> }; // after lenses
   theme: ThemePalette;
   focus: NoteId | null;
+  focusDepth: 1 | 2; // 1-hop or (shift+click) 2-hop neighbourhood stays bright
   reducedMotion: boolean;
   layout: LayoutClient;
-  onFocus(id: NoteId | null): void;
+  onFocus(id: NoteId | null, depth?: 1 | 2): void;
+  /** Enter on a focused node: open the preview. */
+  onActivate(id: NoteId): void;
   onHover(id: NoteId | null, at?: ScreenPoint): void;
   onLayoutStatus?(status: { settled: boolean; cached: number }): void;
 }

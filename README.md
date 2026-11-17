@@ -4,7 +4,14 @@ Vault Lens opens a folder of markdown notes (an Obsidian-style vault) and shows 
 
 It is an installable, offline-capable web app (PWA). **Your notes never leave your device**: there is no backend, no account and no analytics. The vault is opened read-only, and the app never writes to it.
 
-> Status: Phase 1 (ingest, parsing, graph model, force graph). See [`PLAN.md`](PLAN.md) for the full build plan and [`docs/DECISIONS.md`](docs/DECISIONS.md) for deviations.
+> Status: Phase 2 (focus, preview, search, lenses, themes). See [`PLAN.md`](PLAN.md) for the full build plan and [`docs/DECISIONS.md`](docs/DECISIONS.md) for deviations.
+
+## Using it
+
+- **Click** a note to focus it (its neighbours stay bright) and read it in the preview; **Shift+click** expands to two hops; **Esc** clears focus.
+- **Keyboard:** Tab to the graph, arrow keys move between linked notes, Enter opens the preview, `+`/`-` zoom, `/` or Ctrl/Cmd+K searches.
+- **Lenses** (left panel) filter by tag, folder, date, number of links, orphans and missing notes. Active lenses show as chips in the top bar and live in the URL, so a filtered view can be bookmarked.
+- **Themes:** Dark Space, Neon, Watercolor, Pastel, or match the system. Reduced-motion settings stop all ambient animation.
 
 ## Browser support
 
