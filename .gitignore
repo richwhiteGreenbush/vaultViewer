@@ -1,0 +1,9 @@
+node_modules
+dist
+dev-dist
+coverage
+playwright-report
+test-results
+public/sample-vault.zip
+fixtures/large-vault*
+*.tsbuildinfo

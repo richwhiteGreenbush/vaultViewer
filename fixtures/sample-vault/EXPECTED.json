@@ -1,0 +1,41 @@
+{
+  "$comment": "Source of truth for Phase 1 parser/graph tests. Counting rules: every link occurrence is one Link (duplicates count); markdown links to non-existent notes, external links, anchor-only links and non-markdown embeds are ignored entirely; ghosts are distinct unresolved wikilink/embed targets; orphans are notes with zero in- and out-links (links to ghosts count as out-links); tags include every distinct tag used (each nested tag's parent is also used directly in this vault, so implied parents do not change the count); folders include the vault root ''.",
+  "notes": 39,
+  "links": { "total": 58, "wikilink": 53, "markdown": 4, "embed": 1 },
+  "resolved": 54,
+  "unresolved": 4,
+  "ghosts": ["daily template", "lessons learned", "quantum gardening", "unknown project"],
+  "tags": 38,
+  "orphans": ["archive/old idea", "empty", "resources/glossary", "resources/quotes"],
+  "folders": 13,
+  "warnings": 1,
+  "skipped": [".obsidian/snippets/should-be-skipped.md", ".trash/Deleted.md", "templates/Daily Template.md", "Resources/notes.txt", ".obsidian/app.json"],
+  "mustNotContainTags": ["not-a-tag", "also-not-a-tag", "fragment", "section", "123", "2025", "broken", "skipped", "trashed", "template", "txt"],
+  "mustNotContainGhosts": ["not a link", "fenced link", "nope", "diagram.png"],
+  "resolutions": [
+    { "source": "welcome", "raw": "Projects/Alpha/Plan", "target": "projects/alpha/plan", "rule": "exact path" },
+    { "source": "projects/gamma", "raw": "Projects/Beta/Tasks.md", "target": "projects/beta/tasks", "rule": "exact path with .md" },
+    { "source": "areas/health/nutrition", "raw": "Recipes/Lentil Soup", "target": "areas/health/recipes/lentil soup", "rule": "relative to source folder" },
+    { "source": "projects/alpha/plan", "raw": "Meeting", "target": "projects/alpha/meeting", "rule": "relative to source folder (beats duplicate basename)" },
+    { "source": "resources/reading list", "raw": "Long Essay", "target": "resources/long essay", "rule": "unique basename" },
+    { "source": "areas/learning/rust", "raw": "Spanish Notes", "target": "areas/learning/spanish", "rule": "alias" },
+    { "source": "ideas inbox", "raw": "Project Beta", "target": "projects/beta overview", "rule": "alias (string form)" },
+    { "source": "projects/alpha/meeting", "raw": "Alpha Roadmap", "target": "projects/alpha/plan", "rule": "alias (list form)" },
+    { "source": "welcome", "raw": "Meeting", "target": "journal/meeting", "rule": "duplicate basename, shortest path" },
+    { "source": "journal/2026/2026-10-28", "raw": "Meeting", "target": "journal/meeting", "rule": "duplicate basename, shortest path" },
+    { "source": "projects/alpha/plan", "raw": "Specs#API", "target": "projects/alpha/specs", "heading": "API", "rule": "heading" },
+    { "source": "projects/alpha/specs", "raw": "Plan#Risks|risks", "target": "projects/alpha/plan", "heading": "Risks", "alias": "risks", "rule": "heading + alias" },
+    { "source": "projects/alpha/meeting", "raw": "![[Specs]]", "target": "projects/alpha/specs", "kind": "embed", "rule": "embed of a note" },
+    { "source": "projects/alpha/plan", "raw": "../Beta%20Overview.md", "target": "projects/beta overview", "kind": "markdown", "rule": "relative markdown link, url-encoded" },
+    { "source": "welcome", "raw": "Areas/Learning/Gardening.md", "target": "areas/learning/gardening", "kind": "markdown", "rule": "markdown link from root" }
+  ],
+  "titles": {
+    "welcome": "Welcome to the Sample Vault",
+    "projects/alpha/plan": "Alpha Plan",
+    "journal/broken frontmatter": "Broken Frontmatter",
+    "empty": "Empty",
+    "journal/2025/2025-01-15": "2025-01-15"
+  },
+  "wordCount": { "empty": 0 },
+  "frontmatterCreatedRange": ["2025-01-02", "2026-10-28"]
+}

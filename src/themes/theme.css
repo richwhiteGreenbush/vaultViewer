@@ -1,0 +1,14 @@
+/* Theme tokens. Phase 2 adds Neon, Watercolor and Pastel; Dark Space is the default. */
+:root,
+[data-theme='darkSpace'] {
+  --bg: #050816;
+  --bg-gradient: linear-gradient(160deg, #050816 0%, #0d1b3d 100%);
+  --surface: rgba(18, 28, 60, 0.85);
+  --surface-strong: #121c3c;
+  --border: rgba(255, 255, 255, 0.12);
+  --text: #e8ecff;
+  --muted-text: #a9b3d6;
+  --accent: #7aa2ff;
+  --accent-contrast: #050816;
+  --focus-ring: #ffd27a;
+}
