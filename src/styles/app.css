@@ -826,3 +826,18 @@ body {
     bottom: 64px;
   }
 }
+.svg-view:has([data-testid='calendar-svg']) {
+  padding: 56px 24px 24px;
+}
+.cal-scale {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--muted-text);
+}
+.cal-scale i {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+}

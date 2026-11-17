@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { expect, SAMPLE_ZIP, test } from './helpers';
 
@@ -36,7 +37,7 @@ const registered = async (page: Page) =>
     .locator('option')
     .evaluateAll((opts) => opts.map((o) => (o as HTMLOptionElement).value));
 
-test('every view renders the sample vault, has a legend, and focusing a note opens the preview', async ({
+test('every view renders the sample vault, has a legend, and focusing a note opens the preview @cross', async ({
   page,
 }, info) => {
   await load(page);
@@ -74,6 +75,28 @@ test('switching views keeps the focused note and the lenses', async ({ page }) =
   await page.keyboard.press('1');
   await expect(page.getByTestId('view-host')).toHaveAttribute('data-view', 'force');
 });
+
+for (const theme of ['darkSpace', 'pastel']) {
+  test(`no WCAG 2.1 AA violations (axe) in any view, ${theme} theme`, async ({ page }) => {
+    test.setTimeout(120_000); // six axe passes; the calendar alone has ~730 day cells
+    await load(page);
+    await page.getByTestId('theme-select').selectOption(theme);
+    for (const id of await registered(page)) {
+      await switchTo(page, id);
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .analyze();
+      const summary = results.violations.map(
+        (v) =>
+          `${id} ${v.id}: ${v.nodes
+            .map((n) => n.target.join(' '))
+            .slice(0, 3)
+            .join(' | ')}`,
+      );
+      expect(summary).toEqual([]);
+    }
+  });
+}
 
 test('reduced motion stops ambient animation in every view', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });

@@ -4,7 +4,18 @@ Vault Lens opens a folder of markdown notes (an Obsidian-style vault) and shows 
 
 It is an installable, offline-capable web app (PWA). **Your notes never leave your device**: there is no backend, no account and no analytics. The vault is opened read-only, and the app never writes to it.
 
-> Status: Phase 2 (focus, preview, search, lenses, themes). See [`PLAN.md`](PLAN.md) for the full build plan and [`docs/DECISIONS.md`](docs/DECISIONS.md) for deviations.
+> Status: Phase 3 (six views: force graph, galaxy, tag garden, timeline, tag chord, calendar). See [`PLAN.md`](PLAN.md) for the full build plan and [`docs/DECISIONS.md`](docs/DECISIONS.md) for deviations.
+
+## Views
+
+Switch with the **View** menu or keys **1–6**. Focus, lenses and theme carry over between views, and every view has a legend.
+
+1. **Force graph**: notes and links laid out by a force simulation.
+2. **Galaxy**: top-level folders are solar systems; subfolders are moons; notes orbit closer the more links they have; hyperlanes join folders that link to each other.
+3. **Tag garden**: each top-level tag is a plant; nested tags are branches; notes flower on their first tag, with vines to their other tags.
+4. **Timeline**: notes as stars by date in folder lanes; press Play to watch the vault grow; drag across the scrubber to filter by date.
+5. **Tag chord**: which tags appear together. Click an arc to filter by that tag; click a ribbon to list its notes.
+6. **Calendar**: notes created or updated per day; click a day to list its notes.
 
 ## Using it
 

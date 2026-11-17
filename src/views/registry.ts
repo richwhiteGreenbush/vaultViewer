@@ -82,6 +82,17 @@ export const views: ViewEntry[] = [
       { kind: 'ribbon', label: 'Ribbon: notes sharing both tags' },
     ],
   },
+  {
+    id: 'calendar',
+    label: 'Calendar',
+    icon: 'calendar',
+    renderer: 'svg',
+    load: () => import('./calendar').then((m) => m.calendarView),
+    legend: [
+      { kind: 'scale', label: 'Colour: notes per day' },
+      { kind: 'time', label: 'Columns: weeks; rows: weekdays; one block per year' },
+    ],
+  },
 ];
 
 export const DEFAULT_VIEW = 'force';

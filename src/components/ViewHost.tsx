@@ -77,7 +77,8 @@ export function ViewHost() {
       instance.current?.destroy();
       instance.current = null;
       // The host element is reused by the next view: clear state attributes the old view set.
-      for (const attr of ['data-layout', 'data-nodes', 'data-visible-nodes', 'data-focus-size']) host.removeAttribute(attr);
+      for (const attr of ['data-layout', 'data-nodes', 'data-visible-nodes', 'data-focus-size'])
+        host.removeAttribute(attr);
     };
   }, [activeView, hasGraph]);
 
