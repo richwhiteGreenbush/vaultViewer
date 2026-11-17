@@ -7,3 +7,4 @@ test-results
 public/sample-vault.zip
 fixtures/large-vault*
 *.tsbuildinfo
+*.tmp.*
