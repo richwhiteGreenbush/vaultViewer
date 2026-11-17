@@ -141,13 +141,15 @@ test.describe('performance: 5,000 notes / 20,000 links @perf', () => {
 
     expect(report.parseMsWall).toBeLessThan(8_000);
     expect(report.maxLongTaskDuringParseMs).toBeLessThanOrEqual(200);
-    // Typical lens updates must be well under 100 ms; allow one GC/scheduling outlier in ten on a busy machine.
-    expect(report.lensMedianMs).toBeLessThan(60);
-    expect(lensOver100).toBeLessThanOrEqual(1);
+    // Frame-bound budgets (pan fps, lens update incl. one painted frame) need a hardware GPU; SwiftShader
+    // takes ~250 ms just to paint one frame of this graph.
     if (/swiftshader|llvmpipe|software/i.test(gpu)) {
-      test.info().annotations.push({ type: 'skipped-fps', description: `software renderer: ${gpu}` });
+      test.info().annotations.push({ type: 'skipped-frame-budgets', description: `software renderer: ${gpu}` });
     } else {
       expect(report.panFps).toBeGreaterThan(45);
+      // Typical lens updates must be well under 100 ms; allow one GC/scheduling outlier in ten on a busy machine.
+      expect(report.lensMedianMs).toBeLessThan(60);
+      expect(lensOver100).toBeLessThanOrEqual(1);
     }
   });
 });
