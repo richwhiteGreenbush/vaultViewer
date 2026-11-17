@@ -44,6 +44,20 @@ export const views: ViewEntry[] = [
       { kind: 'comet', label: 'Comets: notes with no links' },
     ],
   },
+  {
+    id: 'tagGarden',
+    label: 'Tag garden',
+    icon: 'flower-2',
+    renderer: 'pixi',
+    load: () => import('./tagGarden').then((m) => m.tagGardenView),
+    legend: [
+      { kind: 'stem', label: 'Plant: top-level tag (height = notes); branches: nested tags' },
+      { kind: 'color', label: 'Flower: a note, on the plant of its first tag' },
+      { kind: 'size', label: 'Flower size: word count' },
+      { kind: 'line', label: 'Vines: the note’s other tags' },
+      { kind: 'seed', label: 'Compost: untagged notes' },
+    ],
+  },
 ];
 
 export const DEFAULT_VIEW = 'force';

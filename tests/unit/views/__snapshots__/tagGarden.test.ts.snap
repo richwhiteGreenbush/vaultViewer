@@ -1,0 +1,355 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`tag garden layout > snapshot (rounded) 1`] = `
+{
+  "flowers": {
+    "archive/old idea": [
+      781,
+      -102,
+    ],
+    "areas/health/fitness log": [
+      501,
+      -127,
+    ],
+    "areas/health/nutrition": [
+      361,
+      -144,
+    ],
+    "areas/health/recipes/lentil soup": [
+      318,
+      -106,
+    ],
+    "areas/health/running": [
+      348,
+      -137,
+    ],
+    "areas/health/sleep": [
+      356,
+      -157,
+    ],
+    "areas/learning/gardening": [
+      208,
+      249,
+    ],
+    "areas/learning/rust": [
+      248,
+      -94,
+    ],
+    "areas/learning/spanish": [
+      571,
+      -127,
+    ],
+    "code samples": [
+      221,
+      -144,
+    ],
+    "empty": [
+      968,
+      340,
+    ],
+    "ideas inbox": [
+      251,
+      228,
+    ],
+    "journal/2025/2025-01-15": [
+      55,
+      -220,
+    ],
+    "journal/2025/2025-03-02": [
+      42,
+      -213,
+    ],
+    "journal/2025/2025-05-18": [
+      50,
+      -233,
+    ],
+    "journal/2025/2025-07-04": [
+      58,
+      -208,
+    ],
+    "journal/2025/2025-09-21": [
+      32,
+      -223,
+    ],
+    "journal/2025/2025-11-30": [
+      65,
+      -230,
+    ],
+    "journal/2026/2026-01-01": [
+      44,
+      -200,
+    ],
+    "journal/2026/2026-03-15": [
+      39,
+      -239,
+    ],
+    "journal/2026/2026-05-09": [
+      71,
+      -212,
+    ],
+    "journal/2026/2026-07-22": [
+      26,
+      -211,
+    ],
+    "journal/2026/2026-09-10": [
+      60,
+      -243,
+    ],
+    "journal/2026/2026-10-28": [
+      57,
+      -194,
+    ],
+    "journal/broken frontmatter": [
+      24,
+      -234,
+    ],
+    "journal/meeting": [
+      641,
+      -127,
+    ],
+    "projects/alpha/meeting": [
+      628,
+      -120,
+    ],
+    "projects/alpha/plan": [
+      182,
+      -115,
+    ],
+    "projects/alpha/retro": [
+      169,
+      -108,
+    ],
+    "projects/alpha/specs": [
+      177,
+      -128,
+    ],
+    "projects/beta overview": [
+      113,
+      -134,
+    ],
+    "projects/beta/tasks": [
+      100,
+      -128,
+    ],
+    "projects/gamma": [
+      172,
+      -155,
+    ],
+    "resources/glossary": [
+      741,
+      228,
+    ],
+    "resources/long essay": [
+      921,
+      -102,
+    ],
+    "resources/quotes": [
+      671,
+      228,
+    ],
+    "resources/reading list": [
+      711,
+      -127,
+    ],
+    "resources/snippets": [
+      208,
+      -137,
+    ],
+    "welcome": [
+      391,
+      228,
+    ],
+  },
+  "plants": [
+    [
+      "journal",
+      49,
+      0,
+      220,
+      13,
+    ],
+    [
+      "project",
+      139,
+      0,
+      186,
+      7,
+    ],
+    [
+      "dev",
+      215,
+      0,
+      144,
+      3,
+    ],
+    [
+      "food",
+      285,
+      0,
+      144,
+      3,
+    ],
+    [
+      "health",
+      355,
+      0,
+      144,
+      3,
+    ],
+    [
+      "mood",
+      425,
+      0,
+      144,
+      3,
+    ],
+    [
+      "fitness",
+      495,
+      0,
+      127,
+      2,
+    ],
+    [
+      "language",
+      565,
+      0,
+      127,
+      2,
+    ],
+    [
+      "meeting",
+      635,
+      0,
+      127,
+      2,
+    ],
+    [
+      "reading",
+      705,
+      0,
+      127,
+      2,
+    ],
+    [
+      "archive",
+      775,
+      0,
+      102,
+      1,
+    ],
+    [
+      "books",
+      845,
+      0,
+      102,
+      1,
+    ],
+    [
+      "essay",
+      915,
+      0,
+      102,
+      1,
+    ],
+    [
+      "goals",
+      985,
+      0,
+      102,
+      1,
+    ],
+    [
+      "guide",
+      35,
+      330,
+      102,
+      1,
+    ],
+    [
+      "habits",
+      105,
+      330,
+      102,
+      1,
+    ],
+    [
+      "hobby",
+      175,
+      330,
+      102,
+      1,
+    ],
+    [
+      "ideas",
+      245,
+      330,
+      102,
+      1,
+    ],
+    [
+      "inbox",
+      315,
+      330,
+      102,
+      1,
+    ],
+    [
+      "meta",
+      385,
+      330,
+      102,
+      1,
+    ],
+    [
+      "needs-fix",
+      455,
+      330,
+      102,
+      1,
+    ],
+    [
+      "onboarding",
+      525,
+      330,
+      102,
+      1,
+    ],
+    [
+      "planning",
+      595,
+      330,
+      102,
+      1,
+    ],
+    [
+      "quotes",
+      665,
+      330,
+      102,
+      1,
+    ],
+    [
+      "reference",
+      735,
+      330,
+      102,
+      1,
+    ],
+    [
+      "retro",
+      805,
+      330,
+      102,
+      1,
+    ],
+    [
+      "todo",
+      875,
+      330,
+      102,
+      1,
+    ],
+  ],
+}
+`;
