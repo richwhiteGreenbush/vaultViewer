@@ -32,3 +32,4 @@ One short entry per deviation, newest last.
 - **Perf test runs in its own Playwright project** with GPU flags, after the functional projects (parallel tests skew timings). If the browser still reports a software renderer (SwiftShader, e.g. on CI), the fps assertion is skipped with an annotation; parse and long-task budgets are always asserted.
 - **Firefox e2e** covers zip upload, sample vault, zip drop and folder input. Dropping a *folder* uses `webkitGetAsEntry`, which test tools cannot synthesize, so that path is verified manually.
 - **GitHub Pages workflow is manual-only** until Pages is enabled for the repository (the first automatic run failed with "Pages not enabled").
+- **Canvas 2D fallback.** Without WebGL (GPU-less CI, blocked drivers) Pixi falls back to its Canvas renderer, which cannot draw line-list meshes, so edges are drawn with `Graphics` there. The Firefox e2e project runs with WebGL disabled to cover this path; Chromium covers WebGL.

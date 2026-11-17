@@ -27,7 +27,12 @@ export default defineConfig({
       },
     },
     // Firefox runs the cross-browser ingest paths (zip, drag-and-drop, folder input). Tag a test with @cross.
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] }, grep: /@cross/ },
+    // WebGL is disabled so the Canvas 2D renderer fallback is covered too (CI runners have no GPU anyway).
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'], launchOptions: { firefoxUserPrefs: { 'webgl.disabled': true } } },
+      grep: /@cross/,
+    },
   ],
   webServer: {
     // e2e runs against the production build so the service worker and CSP are real.

@@ -1,6 +1,16 @@
 import 'pixi.js/unsafe-eval'; // eval-free shader/uniform code paths, required by our CSP (no 'unsafe-eval')
 import { proxy as proxyCallback } from 'comlink';
-import { Application, Container, Graphics, Mesh, MeshGeometry, Sprite, Text, Texture } from 'pixi.js';
+import {
+  Application,
+  Container,
+  Graphics,
+  Mesh,
+  MeshGeometry,
+  RendererType,
+  Sprite,
+  Text,
+  Texture,
+} from 'pixi.js';
 import type { NoteId } from '../../core/model';
 import { hexToNumber } from '../../core/color/tagColor';
 import { strings } from '../../strings';
@@ -18,6 +28,9 @@ class ForceView implements ViewInstance {
   private world = new Container();
   private edges = new Container();
   private edgeMeshes: Mesh<MeshGeometry>[] = [];
+  /** Canvas 2D fallback (no WebGL, e.g. GPU-less CI or blocked drivers): edges drawn with Graphics. */
+  private edgeGraphics: Graphics | null = null;
+  private gpu = true;
   private nodeLayer = new Container();
   private labelLayer = new Container();
   private disc!: Texture;
@@ -88,6 +101,7 @@ class ForceView implements ViewInstance {
     this.world.addChild(this.edges, this.nodeLayer, this.labelLayer);
     this.app.stage.addChild(this.world);
     this.app.ticker.add(() => this.frame());
+    this.gpu = this.app.renderer.type !== RendererType.CANVAS;
     this.bindInput(canvas);
     this.build();
   }
@@ -168,6 +182,7 @@ class ForceView implements ViewInstance {
         s.y = this.pos[i * 2 + 1] as number;
       }
       for (const mesh of this.edgeMeshes) mesh.geometry.positions = this.pos as Float32Array<ArrayBuffer>;
+      if (this.edgeGraphics) this.drawEdgesCanvas(this.edgeGraphics);
       this.edgesDirty = false;
     }
     if (this.labelsDirty) {
@@ -183,6 +198,13 @@ class ForceView implements ViewInstance {
   private buildEdges(): void {
     const { theme } = this.ctx;
     this.edges.removeChildren().forEach((c) => c.destroy());
+    this.edgeMeshes = [];
+    this.edgeGraphics = null;
+    if (!this.gpu) {
+      this.edgeGraphics = new Graphics();
+      this.edges.addChild(this.edgeGraphics);
+      return;
+    }
     const n = this.ids.length;
     const uvs = new Float32Array(n * 2);
     this.edgeMeshes = [true, false].flatMap((resolved) => {
@@ -205,6 +227,33 @@ class ForceView implements ViewInstance {
       this.edges.addChild(mesh);
       return [mesh];
     });
+  }
+
+  private drawEdgesCanvas(g: Graphics): void {
+    const { theme } = this.ctx;
+    const p = this.pos;
+    g.clear();
+    for (const resolved of [true, false]) {
+      let any = false;
+      for (let k = 0; k < this.links.length / 2; k++) {
+        if (this.linkResolved[k] !== resolved) continue;
+        const s = this.links[k * 2] as number;
+        const t = this.links[k * 2 + 1] as number;
+        g.moveTo(p[s * 2] as number, p[s * 2 + 1] as number).lineTo(
+          p[t * 2] as number,
+          p[t * 2 + 1] as number,
+        );
+        any = true;
+      }
+      if (any) {
+        g.stroke({
+          color: hexToNumber(resolved ? theme.edge : theme.ghost),
+          alpha: resolved ? theme.edgeAlpha : theme.edgeAlpha * 0.8,
+          width: 1,
+          pixelLine: true,
+        });
+      }
+    }
   }
 
   private drawLabels(): void {
