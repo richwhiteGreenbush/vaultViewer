@@ -71,6 +71,17 @@ export const views: ViewEntry[] = [
       { kind: 'line', label: 'Constellation lines: links' },
     ],
   },
+  {
+    id: 'chord',
+    label: 'Tag chord',
+    icon: 'circle-dot',
+    renderer: 'svg',
+    load: () => import('./chord').then((m) => m.chordView),
+    legend: [
+      { kind: 'arc', label: 'Arc: a tag (length = notes)' },
+      { kind: 'ribbon', label: 'Ribbon: notes sharing both tags' },
+    ],
+  },
 ];
 
 export const DEFAULT_VIEW = 'force';
