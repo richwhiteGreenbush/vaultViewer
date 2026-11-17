@@ -5,6 +5,7 @@ import { VaultPicker } from './VaultPicker';
 import { SearchBox } from './SearchBox';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { LensChips } from './LensChips';
+import { ViewSwitcher } from './ViewSwitcher';
 
 export function TopBar() {
   const hasGraph = useVaultStore((s) => !!s.graph);
@@ -31,6 +32,7 @@ export function TopBar() {
         <img src="./favicon.svg" alt="" width={24} height={24} />
         <h1>{strings.appName}</h1>
       </div>
+      {hasGraph && <ViewSwitcher />}
       <SearchBox />
       <LensChips />
       <div className="top-bar__spacer" />

@@ -11,11 +11,15 @@ async function loadSample(page: Page, hash = '') {
 const screenPos = (page: Page, id: string) =>
   page.evaluate(
     (id) =>
-      (window as unknown as { __vaultLensView: { screenPosition(id: string): { x: number; y: number } | null } }).__vaultLensView.screenPosition(id),
+      (
+        window as unknown as {
+          __vaultLensView: { screenPosition(id: string): { x: number; y: number } | null };
+        }
+      ).__vaultLensView.screenPosition(id),
     id,
   );
 
-async function clickNode(page: Page, id: string, modifiers: ('Shift')[] = []) {
+async function clickNode(page: Page, id: string, modifiers: 'Shift'[] = []) {
   // Comets move, so read the position right before clicking.
   const p = await screenPos(page, id);
   if (!p) throw new Error(`no node ${id}`);
@@ -48,7 +52,9 @@ test.describe('focus and preview', () => {
     await expect(page.getByTestId('view-host')).toHaveAttribute('data-focus-size', '3');
     await page.waitForTimeout(600); // let the camera finish easing to the focused node
     await clickNode(page, 'areas/health/sleep', ['Shift']);
-    await expect.poll(async () => Number(await page.getByTestId('view-host').getAttribute('data-focus-size'))).toBeGreaterThan(3);
+    await expect
+      .poll(async () => Number(await page.getByTestId('view-host').getAttribute('data-focus-size')))
+      .toBeGreaterThan(3);
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('view-host')).toHaveAttribute('data-focus-size', '0');
   });
@@ -70,7 +76,7 @@ test.describe('focus and preview', () => {
     await page.keyboard.press('/');
     await expect(page.locator('#search-input')).toBeFocused();
     await page.keyboard.type('lentl');
-    await expect(page.getByRole('option').first()).toContainText('Lentil Soup');
+    await expect(page.locator('#search-results').getByRole('option').first()).toContainText('Lentil Soup');
     await page.keyboard.press('Enter');
     await expect(preview(page)).toHaveText('Lentil Soup');
     // aliases are searchable too
@@ -82,12 +88,16 @@ test.describe('focus and preview', () => {
 });
 
 test.describe('keyboard', () => {
-  test('Tab reaches the canvas, arrows move between neighbours, Enter opens the preview', async ({ page }) => {
+  test('Tab reaches the canvas, arrows move between neighbours, Enter opens the preview', async ({
+    page,
+  }) => {
     await loadSample(page);
     let onCanvas = false;
     for (let i = 0; i < 40 && !onCanvas; i++) {
       await page.keyboard.press('Tab');
-      onCanvas = await page.evaluate(() => document.activeElement?.getAttribute('data-testid') === 'graph-canvas');
+      onCanvas = await page.evaluate(
+        () => document.activeElement?.getAttribute('data-testid') === 'graph-canvas',
+      );
     }
     expect(onCanvas).toBe(true);
     const announcer = page.getByTestId('focus-announcer');
@@ -115,7 +125,10 @@ test.describe('lenses', () => {
   test('a tag lens drops the note count; chips remove it in one click @cross', async ({ page }) => {
     await loadSample(page);
     await page.getByRole('button', { name: 'Toggle lens panel' }).click();
-    await page.getByTestId('lens-panel').getByRole('button', { name: 'Include #project', exact: true }).click();
+    await page
+      .getByTestId('lens-panel')
+      .getByRole('button', { name: 'Include #project', exact: true })
+      .click();
     await expect(notesStat(page)).toHaveAttribute('data-value', '7');
     await expect(page.getByTestId('view-host')).toHaveAttribute('data-visible-nodes', String(7 + 3)); // + ghosts linked from them
     const chips = page.getByTestId('lens-chips');
@@ -130,7 +143,10 @@ test.describe('lenses', () => {
   test('the URL hash restores the same lens after reload', async ({ page }) => {
     await loadSample(page);
     await page.getByRole('button', { name: 'Toggle lens panel' }).click();
-    await page.getByTestId('lens-panel').getByRole('button', { name: 'Include journal', exact: true }).click();
+    await page
+      .getByTestId('lens-panel')
+      .getByRole('button', { name: 'Include journal', exact: true })
+      .click();
     await page.getByLabel('Orphans (no links)').uncheck();
     await expect(notesStat(page)).toHaveAttribute('data-value', '14');
     await expect(page).toHaveURL(/#f=journal&o=0/);
@@ -163,7 +179,8 @@ test.describe('themes', () => {
   test('tag colours are identical across reloads', async ({ page }) => {
     await loadSample(page);
     await clickNode(page, 'projects/alpha/plan');
-    const dot = () => page.getByTestId('tag-dot-project/alpha').evaluate((el) => getComputedStyle(el).backgroundColor);
+    const dot = () =>
+      page.getByTestId('tag-dot-project/alpha').evaluate((el) => getComputedStyle(el).backgroundColor);
     const before = await dot();
     await page.reload();
     await waitForSettledGraph(page);
@@ -178,9 +195,20 @@ test.describe('themes', () => {
       await page.getByRole('button', { name: 'Toggle lens panel' }).click();
       await clickNode(page, 'projects/alpha/plan');
       await expect(page.getByTestId('preview-body')).toContainText('Milestones');
-      await page.getByTestId('lens-panel').getByRole('button', { name: 'Include #project', exact: true }).click();
-      const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
-      const summary = results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 5).join(' | ')}`);
+      await page
+        .getByTestId('lens-panel')
+        .getByRole('button', { name: 'Include #project', exact: true })
+        .click();
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .analyze();
+      const summary = results.violations.map(
+        (v) =>
+          `${v.id}: ${v.nodes
+            .map((n) => n.target.join(' '))
+            .slice(0, 5)
+            .join(' | ')}`,
+      );
       expect(summary).toEqual([]);
     });
   }

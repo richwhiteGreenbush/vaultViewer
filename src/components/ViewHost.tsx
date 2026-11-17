@@ -23,6 +23,7 @@ export function ViewHost() {
   const ctx = useMemo<ViewContext | null>(() => {
     if (!graph || !vaultHash) return null;
     const { setFocus, setHover, setLayout, setPreviewOpen } = useViewStore.getState();
+    const setLens = useLensStore.getState().setLens;
     return {
       graph,
       vaultHash,
@@ -36,6 +37,22 @@ export function ViewHost() {
       onActivate: () => setPreviewOpen(true),
       onHover: setHover,
       onLayoutStatus: setLayout,
+      actions: {
+        includeTag: (tag) =>
+          setLens((l) => {
+            if (!l.tags.include.includes(tag)) l.tags.include.push(tag);
+            l.tags.exclude = l.tags.exclude.filter((t) => t !== tag);
+          }),
+        setDateRange: (field, from, to) =>
+          setLens((l) => {
+            l.date = { field, ...(from !== undefined ? { from } : {}), ...(to !== undefined ? { to } : {}) };
+          }),
+        showNoteList: (title, ids) => useViewStore.getState().showNoteList({ title, ids }),
+        previousView: () => {
+          const v = useViewStore.getState();
+          v.setActiveView(v.previousView === v.activeView ? 'force' : v.previousView);
+        },
+      },
     };
   }, [graph, vaultHash, lens, theme, focus, focusDepth, reducedMotion]);
 

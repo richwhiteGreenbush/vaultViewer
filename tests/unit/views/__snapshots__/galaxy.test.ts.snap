@@ -1,0 +1,212 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`galaxy layout > snapshot of positions at t = 0 (rounded) 1`] = `
+{
+  "positions": {
+    "archive/old idea": [
+      177,
+      -251,
+    ],
+    "areas/health/fitness log": [
+      -237,
+      153,
+    ],
+    "areas/health/nutrition": [
+      -234,
+      135,
+    ],
+    "areas/health/recipes/lentil soup": [
+      -216,
+      132,
+    ],
+    "areas/health/running": [
+      -220,
+      161,
+    ],
+    "areas/health/sleep": [
+      -207,
+      148,
+    ],
+    "areas/learning/gardening": [
+      -387,
+      120,
+    ],
+    "areas/learning/rust": [
+      -399,
+      143,
+    ],
+    "areas/learning/spanish": [
+      -374,
+      142,
+    ],
+    "code samples": [
+      134,
+      229,
+    ],
+    "daily template": [
+      -369,
+      -380,
+    ],
+    "empty": [
+      -362,
+      -478,
+    ],
+    "ideas inbox": [
+      147,
+      178,
+    ],
+    "journal/2025/2025-01-15": [
+      89,
+      -6,
+    ],
+    "journal/2025/2025-03-02": [
+      81,
+      8,
+    ],
+    "journal/2025/2025-05-18": [
+      65,
+      8,
+    ],
+    "journal/2025/2025-07-04": [
+      81,
+      -20,
+    ],
+    "journal/2025/2025-09-21": [
+      57,
+      -6,
+    ],
+    "journal/2025/2025-11-30": [
+      65,
+      -20,
+    ],
+    "journal/2026/2026-01-01": [
+      84,
+      -97,
+    ],
+    "journal/2026/2026-03-15": [
+      107,
+      -81,
+    ],
+    "journal/2026/2026-05-09": [
+      100,
+      -96,
+    ],
+    "journal/2026/2026-07-22": [
+      98,
+      -68,
+    ],
+    "journal/2026/2026-09-10": [
+      82,
+      -70,
+    ],
+    "journal/2026/2026-10-28": [
+      75,
+      -84,
+    ],
+    "journal/broken frontmatter": [
+      -33,
+      12,
+    ],
+    "journal/meeting": [
+      33,
+      -12,
+    ],
+    "lessons learned": [
+      479,
+      159,
+    ],
+    "projects/alpha/meeting": [
+      99,
+      -273,
+    ],
+    "projects/alpha/plan": [
+      83,
+      -260,
+    ],
+    "projects/alpha/retro": [
+      96,
+      -243,
+    ],
+    "projects/alpha/specs": [
+      113,
+      -257,
+    ],
+    "projects/beta overview": [
+      47,
+      -343,
+    ],
+    "projects/beta/tasks": [
+      43,
+      -198,
+    ],
+    "projects/gamma": [
+      101,
+      -305,
+    ],
+    "quantum gardening": [
+      383,
+      361,
+    ],
+    "resources/glossary": [
+      7,
+      17,
+    ],
+    "resources/long essay": [
+      -222,
+      -130,
+    ],
+    "resources/quotes": [
+      -97,
+      111,
+    ],
+    "resources/reading list": [
+      -236,
+      -80,
+    ],
+    "resources/snippets": [
+      -185,
+      -93,
+    ],
+    "unknown project": [
+      -130,
+      -485,
+    ],
+    "welcome": [
+      97,
+      193,
+    ],
+  },
+  "systems": [
+    [
+      "journal",
+      0,
+      0,
+      149,
+    ],
+    [
+      "areas",
+      -281,
+      169,
+      136,
+    ],
+    [
+      "projects",
+      74,
+      -324,
+      140,
+    ],
+    [
+      "",
+      126,
+      200,
+      44,
+    ],
+    [
+      "resources",
+      -214,
+      -101,
+      44,
+    ],
+  ],
+}
+`;

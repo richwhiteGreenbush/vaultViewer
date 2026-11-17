@@ -9,7 +9,7 @@ export const strings = {
     searchResults: 'Search results',
     toggleLenses: 'Toggle lens panel',
     togglePreview: 'Toggle preview panel',
-    views: 'Views',
+    views: 'View',
   },
   lens: {
     title: 'Lenses',
@@ -66,6 +66,39 @@ export const strings = {
     missing: 'This note does not exist yet',
     filterByTag: (t: string) => `Show only notes tagged #${t}`,
     image: (alt: string) => `🖼 ${alt}`,
+  },
+  legend: {
+    title: 'Legend',
+  },
+  noteList: {
+    back: 'Back to list',
+    count: (n: number) => `${n} note${n === 1 ? '' : 's'}`,
+  },
+  timeline: {
+    play: 'Play',
+    pause: 'Pause',
+    speed: 'Playback speed',
+    field: 'Date shown',
+    scrubber: 'Timeline scrubber: drag to set the date lens',
+    playhead: 'Playhead',
+    undated: 'Missing notes are not shown (no date)',
+  },
+  chord: {
+    topN: 'Tags shown',
+    label: 'Tag co-occurrence chord diagram',
+    arc: (tag: string, n: number) => `#${tag}: ${n} notes. Enter: filter by this tag. Space: list notes.`,
+    ribbon: (a: string, b: string, n: number) => `#${a} and #${b}: ${n} note${n === 1 ? '' : 's'}`,
+    empty: 'No tags appear together in the visible notes.',
+  },
+  calendar: {
+    label: 'Notes per day',
+    day: (date: string, n: number) => `${date}: ${n} note${n === 1 ? '' : 's'}`,
+    less: 'Less',
+    more: 'More',
+    field: 'Date shown',
+  },
+  garden: {
+    compost: 'Compost (untagged)',
   },
   theme: {
     label: 'Theme',

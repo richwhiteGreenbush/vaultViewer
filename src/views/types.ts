@@ -1,4 +1,5 @@
-import type { NoteId, VaultGraph } from '../core/model';
+import type { NoteId, TagId, VaultGraph } from '../core/model';
+import type { DateField } from '../core/lens/applyLenses';
 import type { ThemePalette } from '../core/color/palettes';
 import type { LayoutClient } from '../workers/clients';
 
@@ -21,6 +22,36 @@ export interface ViewContext {
   onActivate(id: NoteId): void;
   onHover(id: NoteId | null, at?: ScreenPoint): void;
   onLayoutStatus?(status: { settled: boolean; cached: number }): void;
+  /** Cross-cutting actions views may trigger (lenses, preview lists, navigation). */
+  actions: ViewActions;
+}
+
+export interface ViewActions {
+  includeTag(tag: TagId): void;
+  setDateRange(field: DateField, from?: number, to?: number): void;
+  /** Shows a list of notes in the preview panel (chord ribbon, calendar day). */
+  showNoteList(title: string, ids: NoteId[]): void;
+  previousView(): void;
+}
+
+/** One line of a view's legend. `kind` selects the little icon drawn next to it. */
+export interface LegendItem {
+  kind:
+    | 'size'
+    | 'color'
+    | 'glow'
+    | 'ghost'
+    | 'comet'
+    | 'line'
+    | 'position'
+    | 'scale'
+    | 'sun'
+    | 'stem'
+    | 'seed'
+    | 'arc'
+    | 'ribbon'
+    | 'time';
+  label: string;
 }
 
 export interface ViewInstance {

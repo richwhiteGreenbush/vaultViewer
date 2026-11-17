@@ -125,6 +125,35 @@ test.describe('performance: 5,000 notes / 20,000 links @perf', () => {
     const lensWorstMs = Math.round(sorted[sorted.length - 1] ?? 0);
     const lensOver100 = lensSamples.filter((t) => t >= 100).length;
 
+    // --- every view: renders without errors and holds frame rate while idle-animating ---
+    const viewFps: Record<string, number> = {};
+    const viewIds = await page
+      .getByTestId('view-select')
+      .locator('option')
+      .evaluateAll((opts) => opts.map((o) => (o as HTMLOptionElement).value));
+    for (const id of viewIds) {
+      await page.getByTestId('view-select').selectOption(id);
+      await expect(page.getByTestId('view-host')).toHaveAttribute('data-view', id);
+      await expect(page.getByTestId('view-host')).toHaveAttribute('data-layout', 'settled', {
+        timeout: 60_000,
+      });
+      await page.waitForTimeout(500);
+      viewFps[id] = Math.round(
+        await page.evaluate(
+          () =>
+            new Promise<number>((resolve) => {
+              const f: number[] = [];
+              const tick = (t: number) => {
+                f.push(t);
+                if (t - (f[0] as number) < 2000) requestAnimationFrame(tick);
+                else resolve(((f.length - 1) * 1000) / (t - (f[0] as number)));
+              };
+              requestAnimationFrame(tick);
+            }),
+        ),
+      );
+    }
+
     const report = {
       parseMsWorker: Math.round(info?.ms.total ?? 0),
       parseMsWall: Math.round(parseEnd - parseStart),
@@ -132,6 +161,7 @@ test.describe('performance: 5,000 notes / 20,000 links @perf', () => {
       maxLongTaskUntilGraphShownMs: Math.round(maxOverall),
       panFps: Math.round(fps),
       lensMedianMs,
+      viewFps,
       lensWorstMs,
       lensMs: lensSamples.map(Math.round),
       gpu,
@@ -144,12 +174,15 @@ test.describe('performance: 5,000 notes / 20,000 links @perf', () => {
     // Frame-bound budgets (pan fps, lens update incl. one painted frame) need a hardware GPU; SwiftShader
     // takes ~250 ms just to paint one frame of this graph.
     if (/swiftshader|llvmpipe|software/i.test(gpu)) {
-      test.info().annotations.push({ type: 'skipped-frame-budgets', description: `software renderer: ${gpu}` });
+      test
+        .info()
+        .annotations.push({ type: 'skipped-frame-budgets', description: `software renderer: ${gpu}` });
     } else {
       expect(report.panFps).toBeGreaterThan(45);
       // Typical lens updates must be well under 100 ms; allow one GC/scheduling outlier in ten on a busy machine.
       expect(report.lensMedianMs).toBeLessThan(60);
       expect(lensOver100).toBeLessThanOrEqual(1);
+      for (const [id, f] of Object.entries(viewFps)) expect(f, `${id} idle fps`).toBeGreaterThan(45);
     }
   });
 });

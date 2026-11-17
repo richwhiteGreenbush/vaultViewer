@@ -93,6 +93,7 @@ const unique = (links: Link[] | undefined, key: 'source' | 'target') => [
 export function PreviewPanel() {
   const open = useViewStore((s) => s.previewOpen);
   const focus = useViewStore((s) => s.focus);
+  const noteList = useViewStore((s) => s.noteList);
   const graph = useVaultStore((s) => s.graph);
   const vaultKey = useVaultStore((s) => s.info?.key);
   const theme = useThemeStore((s) => s.theme);
@@ -116,7 +117,34 @@ export function PreviewPanel() {
   );
 
   let body;
-  if (!graph || !focus) {
+  const backToList = noteList && focus && (
+    <button
+      type="button"
+      className="btn btn--small preview__back"
+      onClick={() => useViewStore.getState().setFocus(null)}
+    >
+      ← {strings.noteList.back}
+    </button>
+  );
+  if (graph && !focus && noteList) {
+    body = (
+      <>
+        <h2 className="preview__title" data-testid="preview-list-title">
+          {noteList.title}
+        </h2>
+        <p className="muted small">{strings.noteList.count(noteList.ids.length)}</p>
+        <ul className="link-list" data-testid="note-list">
+          {noteList.ids.map((id) => (
+            <li key={id}>
+              <button type="button" className="md-link" onClick={() => pick(id)}>
+                {graph.notes.get(id)?.title ?? id}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </>
+    );
+  } else if (!graph || !focus) {
     body = <p className="muted">{strings.preview.empty}</p>;
   } else if (!note) {
     body = (
@@ -141,6 +169,7 @@ export function PreviewPanel() {
     const loaded = text?.path === note.path;
     body = (
       <>
+        {backToList}
         <h2 className="preview__title" data-testid="preview-title">
           {note.title}
         </h2>
