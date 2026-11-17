@@ -12,7 +12,23 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}/`,
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, grepInvert: /@perf/ },
+    // Performance budgets need a real GPU; headless Chromium otherwise falls back to SwiftShader (CPU).
+    {
+      name: 'perf',
+      grep: /@perf/,
+      // Runs after the functional projects so timings are not skewed by parallel tests.
+      dependencies: ['chromium', 'firefox'],
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 760 },
+        launchOptions: { args: ['--enable-gpu', '--use-angle=gl', '--ignore-gpu-blocklist'] },
+      },
+    },
+    // Firefox runs the cross-browser ingest paths (zip, drag-and-drop, folder input). Tag a test with @cross.
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] }, grep: /@cross/ },
+  ],
   webServer: {
     // e2e runs against the production build so the service worker and CSP are real.
     command: `npm run fixtures:zip && npx vite build && npx vite preview --port ${PORT} --strictPort`,

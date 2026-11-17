@@ -1,0 +1,26 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`fixture vault matches EXPECTED.json > snapshot of graph counts 1`] = `
+{
+  "folders": [
+    "",
+    "archive",
+    "areas",
+    "areas/health",
+    "areas/health/recipes",
+    "areas/learning",
+    "journal",
+    "journal/2025",
+    "journal/2026",
+    "projects",
+    "projects/alpha",
+    "projects/beta",
+    "resources",
+  ],
+  "ghosts": 4,
+  "links": 58,
+  "notes": 39,
+  "orphans": 4,
+  "tags": 38,
+}
+`;

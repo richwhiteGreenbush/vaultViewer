@@ -4,7 +4,7 @@ Vault Lens opens a folder of markdown notes (an Obsidian-style vault) and shows 
 
 It is an installable, offline-capable web app (PWA). **Your notes never leave your device**: there is no backend, no account and no analytics. The vault is opened read-only, and the app never writes to it.
 
-> Status: Phase 0 (scaffold). See [`PLAN.md`](PLAN.md) for the full build plan and [`docs/DECISIONS.md`](docs/DECISIONS.md) for deviations.
+> Status: Phase 1 (ingest, parsing, graph model, force graph). See [`PLAN.md`](PLAN.md) for the full build plan and [`docs/DECISIONS.md`](docs/DECISIONS.md) for deviations.
 
 ## Browser support
 
@@ -34,7 +34,7 @@ Quality checks:
 npm run typecheck
 npm run lint
 npm test             # Vitest unit tests
-npm run e2e          # Playwright e2e (builds and previews automatically)
+npm run e2e          # Playwright e2e: Chromium, Firefox (cross-browser ingest) and a 5,000-note perf test
 ```
 
 Fixtures:

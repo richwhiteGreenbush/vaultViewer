@@ -21,7 +21,45 @@ export const strings = {
     heading: 'Open a vault to begin',
     body: 'Pick a folder of markdown notes, drop one here, or upload a .zip. Your notes never leave your device.',
     trySample: 'Try the sample vault',
-    comingSoon: 'Vault loading arrives in the next build phase.',
+  },
+  picker: {
+    openFolder: 'Open folder',
+    chooseFolder: 'Choose folder',
+    uploadZip: 'Upload .zip',
+    dropHint: 'or drop a vault folder or .zip anywhere',
+    dropHere: 'Drop your vault folder or .zip',
+    reconnect: (name: string) => `Reconnect “${name}”`,
+    reconnectHint: 'Showing cached notes. Reconnect to pick up changes.',
+  },
+  progress: {
+    listing: 'Finding notes…',
+    parsing: (done: number, total: number) => `Parsed ${done.toLocaleString()} / ${total.toLocaleString()}`,
+    building: 'Building graph…',
+    saving: 'Saving cache…',
+    layout: 'Arranging…',
+  },
+  stats: {
+    notes: 'notes',
+    links: 'links',
+    tags: 'tags',
+    orphans: 'orphans',
+    ghosts: 'ghosts',
+    warnings: (n: number) => `${n} warning${n === 1 ? '' : 's'}`,
+    parsed: (parsed: number, cached: number, ms: number) =>
+      `${parsed.toLocaleString()} parsed, ${cached.toLocaleString()} cached in ${(ms / 1000).toFixed(1)} s`,
+  },
+  tooltip: {
+    words: (n: number) => `${n.toLocaleString()} words`,
+    ghost: 'Missing note (linked but no file)',
+    noTags: 'no tags',
+  },
+  errors: {
+    empty: 'No markdown notes found in that folder.',
+    dropUnsupported: 'Drop a folder or a .zip of markdown notes.',
+    sample: 'Could not load the sample vault',
+  },
+  view: {
+    canvasLabel: (notes: number, links: number) => `Graph of ${notes} notes and ${links} links`,
   },
   status: {
     offlineReady: 'Ready to work offline.',

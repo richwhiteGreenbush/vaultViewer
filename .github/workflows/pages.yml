@@ -1,8 +1,8 @@
 name: Deploy to GitHub Pages
 
+# Manual until GitHub Pages is enabled for this repo (Settings -> Pages -> Source: GitHub Actions).
+# Then add back:  push: { branches: [main] }
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

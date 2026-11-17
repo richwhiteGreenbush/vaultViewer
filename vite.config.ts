@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -38,6 +39,17 @@ function cspPlugin(): Plugin {
 export default defineConfig({
   // Relative base so the build works under a GitHub Pages sub-path.
   base: './',
+  resolve: {
+    alias: [
+      // The package's "browser" build uses `document`, which does not exist in our parse worker.
+      {
+        find: /^decode-named-character-reference$/,
+        replacement: fileURLToPath(
+          new URL('./node_modules/decode-named-character-reference/index.js', import.meta.url),
+        ),
+      },
+    ],
+  },
   plugins: [
     react(),
     cspPlugin(),
