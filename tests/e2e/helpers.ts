@@ -77,3 +77,60 @@ export const loadInfo = (page: Page) =>
         }
       ).__vaultLens,
   );
+
+/**
+ * Writes files into an Origin Private File System folder and stubs `showDirectoryPicker` to return it:
+ * a scriptable stand-in for a real folder opened with the File System Access API.
+ */
+export async function setupOpfsVault(
+  page: Page,
+  files: [string, string][],
+  name = 'sample-vault',
+): Promise<void> {
+  await page.evaluate(
+    async ({ files, name }) => {
+      const root = await navigator.storage.getDirectory();
+      await root.removeEntry(name, { recursive: true }).catch(() => undefined);
+      const vault = await root.getDirectoryHandle(name, { create: true });
+      for (const [path, text] of files) {
+        const parts = path.split('/');
+        let dir = vault;
+        for (const seg of parts.slice(0, -1)) dir = await dir.getDirectoryHandle(seg, { create: true });
+        const w = await (
+          await dir.getFileHandle(parts[parts.length - 1] as string, { create: true })
+        ).createWritable();
+        await w.write(text);
+        await w.close();
+      }
+      (
+        window as unknown as { showDirectoryPicker: () => Promise<FileSystemDirectoryHandle> }
+      ).showDirectoryPicker = async () => (await navigator.storage.getDirectory()).getDirectoryHandle(name);
+    },
+    { files, name },
+  );
+}
+
+/** Writes (creates or replaces) one file in the OPFS vault. */
+export async function writeOpfsFile(
+  page: Page,
+  path: string,
+  text: string,
+  name = 'sample-vault',
+): Promise<void> {
+  await page.evaluate(
+    async ({ path, text, name }) => {
+      let dir = await (await navigator.storage.getDirectory()).getDirectoryHandle(name);
+      const parts = path.split('/');
+      for (const seg of parts.slice(0, -1)) dir = await dir.getDirectoryHandle(seg, { create: true });
+      const w = await (
+        await dir.getFileHandle(parts[parts.length - 1] as string, { create: true })
+      ).createWritable();
+      await w.write(text);
+      await w.close();
+    },
+    { path, text, name },
+  );
+}
+
+/** PNG width/height from the IHDR chunk. */
+export const pngSize = (buf: Buffer) => ({ width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) });

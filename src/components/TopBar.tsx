@@ -6,11 +6,15 @@ import { SearchBox } from './SearchBox';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { LensChips } from './LensChips';
 import { ViewSwitcher } from './ViewSwitcher';
+import { ExportMenu } from './ExportMenu';
+import { useSettingsStore } from '../state/settingsStore';
 
 export function TopBar() {
   const hasGraph = useVaultStore((s) => !!s.graph);
   const needsReconnect = useVaultStore((s) => s.needsReconnect);
   const lastName = useVaultStore((s) => s.lastVault?.name);
+  const canRefresh = useVaultStore((s) => s.info?.kind === 'handle' && !!s.lastVault?.handle);
+  const refreshing = useVaultStore((s) => s.refreshing);
   const lensOpen = useViewStore((s) => s.lensPanelOpen);
   const previewOpen = useViewStore((s) => s.previewOpen);
   const v = useViewStore.getState;
@@ -46,8 +50,32 @@ export function TopBar() {
           {strings.picker.reconnect(lastName)}
         </button>
       )}
+      {hasGraph && canRefresh && !needsReconnect && (
+        <button
+          type="button"
+          className="btn btn--small"
+          disabled={refreshing}
+          data-testid="refresh"
+          onClick={() => void useVaultStore.getState().refresh()}
+        >
+          {refreshing ? strings.refresh.refreshing : strings.refresh.refresh}
+        </button>
+      )}
+      {hasGraph && <ExportMenu />}
       {hasGraph && <VaultPicker compact />}
       <ThemeSwitcher />
+      <button
+        type="button"
+        className="icon-btn"
+        aria-label={strings.settings.open}
+        data-testid="settings-button"
+        onClick={() => useSettingsStore.getState().setSettingsOpen(true)}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" />
+        </svg>
+      </button>
       <button
         type="button"
         className="icon-btn"

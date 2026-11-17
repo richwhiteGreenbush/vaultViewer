@@ -5,7 +5,7 @@ import type { Note } from '../../core/model';
 import { strings } from '../../strings';
 import type { ViewContext, ViewInstance, ViewModule } from '../types';
 import { chordLayout, type ChordLayout } from './layout';
-import { svgToPng } from '../shared/svgExport';
+import { svgToPng, svgToString } from '../shared/svgExport';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const el = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}) => {
@@ -207,6 +207,10 @@ class ChordView implements ViewInstance {
 
   exportImage(): Promise<Blob> {
     return svgToPng(this.svg, this.ctx.theme.background);
+  }
+
+  exportSvg(): string {
+    return svgToString(this.svg, this.ctx.theme.background);
   }
 
   destroy(): void {

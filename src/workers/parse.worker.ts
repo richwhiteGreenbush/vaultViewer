@@ -32,6 +32,8 @@ export interface LoadResult {
   vaultHash: string;
   warnings: string[];
   parsedCount: number;
+  /** False when nothing was added, changed or removed since the cache (watch polls use this). */
+  changed: boolean;
   cachedCount: number;
   ms: { total: number; list: number; parse: number; build: number };
 }
@@ -59,10 +61,17 @@ const CHUNK = 64;
 const helpers: Comlink.Remote<ParseWorkerApi>[] = [];
 
 const api = {
-  async parseItems(items: FileItem[]): Promise<ParsedItem[]> {
+  async parseItems(items: FileItem[]): Promise<{ ok: ParsedItem[]; failed: string[] }> {
     const out: ParsedItem[] = [];
+    const failed: string[] = [];
     for (const item of items) {
-      const text = await readText(item);
+      let text: string;
+      try {
+        text = await readText(item);
+      } catch (e) {
+        failed.push(`${item.path}: could not be read (${e instanceof Error ? e.name : 'error'}), skipped`);
+        continue;
+      }
       out.push({
         parsed: parseNote({ path: item.path, text, lastModified: item.lastModified }),
         text,
@@ -71,7 +80,7 @@ const api = {
         size: item.size,
       });
     }
-    return out;
+    return { ok: out, failed };
   },
 
   /** Exposes this worker's API on a port (helper role). */
@@ -108,6 +117,9 @@ const api = {
         source.handle,
         (dir) => dir.startsWith('.') || ignored.has(dir.toLowerCase()),
         (path) => NOTE_EXT.test(path),
+        '',
+        (path, e) =>
+          warnings.push(`${path}: could not be read (${e instanceof Error ? e.name : 'error'}), skipped`),
       );
     } else if (source.kind === 'files') {
       const stripped = stripCommonRoot(source.files);
@@ -171,15 +183,18 @@ const api = {
       for (let i = 0; i < misses.length; i += CHUNK) queue.push(misses.slice(i, i + CHUNK));
       const runners = [api, ...helpers.slice(0, Math.max(0, Math.ceil(total / CHUNK) - 1))];
       let lastReport = 0;
+      let done = 0;
       await Promise.all(
         runners.map(async (runner) => {
           for (let chunk = queue.shift(); chunk; chunk = queue.shift()) {
             const result = await runner.parseItems(chunk);
-            fresh.push(...result);
+            fresh.push(...result.ok);
+            warnings.push(...result.failed);
+            done += chunk.length;
             const now = performance.now();
-            if (now - lastReport > 50 || fresh.length === total) {
+            if (now - lastReport > 50 || done === total) {
               lastReport = now;
-              onProgress({ phase: 'parsing', done: fresh.length, total });
+              onProgress({ phase: 'parsing', done, total });
             }
           }
         }),
@@ -189,6 +204,9 @@ const api = {
     for (const f of fresh) warnings.push(...f.parsed.warnings);
     for (const p of parsed.slice(0, cachedCount)) warnings.push(...p.warnings);
     const t2 = performance.now();
+
+    const presentPaths = new Set(items.map((i) => i.path));
+    const removed = [...existing.keys()].filter((p) => !presentPaths.has(p)).length;
 
     // 4. Build the graph.
     onProgress({ phase: 'building', done: 0, total: 0 });
@@ -247,6 +265,7 @@ const api = {
       vaultHash,
       warnings,
       parsedCount: fresh.length,
+      changed: fresh.length > 0 || removed > 0 || source.kind === 'zip' || source.kind === 'files',
       cachedCount,
       ms: { total: performance.now() - t0, list: t1 - t0, parse: t2 - t1, build: t3 - t2 },
     };

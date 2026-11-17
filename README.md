@@ -4,7 +4,7 @@ Vault Lens opens a folder of markdown notes (an Obsidian-style vault) and shows 
 
 It is an installable, offline-capable web app (PWA). **Your notes never leave your device**: there is no backend, no account and no analytics. The vault is opened read-only, and the app never writes to it.
 
-> Status: Phase 3 (six views: force graph, galaxy, tag garden, timeline, tag chord, calendar). See [`PLAN.md`](PLAN.md) for the full build plan and [`docs/DECISIONS.md`](docs/DECISIONS.md) for deviations.
+> Status: v1 complete (Phases 0–4 of [`PLAN.md`](PLAN.md)). See [`PLAN.md`](PLAN.md) for the full build plan and [`docs/DECISIONS.md`](docs/DECISIONS.md) for deviations.
 
 ## Views
 
@@ -23,6 +23,13 @@ Switch with the **View** menu or keys **1–6**. Focus, lenses and theme carry o
 - **Keyboard:** Tab to the graph, arrow keys move between linked notes, Enter opens the preview, `+`/`-` zoom, `/` or Ctrl/Cmd+K searches.
 - **Lenses** (left panel) filter by tag, folder, date, number of links, orphans and missing notes. Active lenses show as chips in the top bar and live in the URL, so a filtered view can be bookmarked.
 - **Themes:** Dark Space, Neon, Watercolor, Pastel, or match the system. Reduced-motion settings stop all ambient animation.
+
+## Live updates, export and settings
+
+- **Refresh / Watch** (Chrome and Edge, folders opened with *Open folder*): **Refresh** rescans the folder; turn on **Settings → Watch** to pick up edits made in other apps within a few seconds. Only changed files are re-parsed. New notes fade in, and deleted notes fade out.
+- **Export** (top bar): a PNG of the current view (2x), SVG for the chord and calendar views, a 1600×900 **poster** with the vault name and stats, and `graph.json` (the graph without any note text).
+- **Settings** (gear icon): folders to ignore, default view, label density, animation speed, watch, and **Clear cache**.
+- Problems found while reading a vault (broken frontmatter, unreadable or oversized files) are listed under **warnings** in the status bar.
 
 ## Browser support
 
@@ -52,7 +59,8 @@ Quality checks:
 npm run typecheck
 npm run lint
 npm test             # Vitest unit tests
-npm run e2e          # Playwright e2e: Chromium, Firefox (cross-browser ingest) and a 5,000-note perf test
+npm run e2e          # Playwright e2e: Chromium, Firefox (cross-browser), 5,000-note perf test, bundle budget
+npm run lighthouse   # Lighthouse report for a running `npm run preview`
 ```
 
 Fixtures:

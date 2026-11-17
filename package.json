@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "fixtures:zip": "node scripts/zip-fixtures.mjs",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "lighthouse": "npx -y lighthouse@12 http://localhost:4173/ --only-categories=performance,accessibility,best-practices --chrome-flags=\"--headless=new\" --output=html --output-path=./lighthouse-report.html --view=false"
   },
   "dependencies": {
     "comlink": "^4.4.2",

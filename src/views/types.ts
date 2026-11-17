@@ -1,5 +1,6 @@
 import type { NoteId, TagId, VaultGraph } from '../core/model';
 import type { DateField } from '../core/lens/applyLenses';
+import type { LabelDensity } from '../state/settingsStore';
 import type { ThemePalette } from '../core/color/palettes';
 import type { LayoutClient } from '../workers/clients';
 
@@ -24,6 +25,7 @@ export interface ViewContext {
   onLayoutStatus?(status: { settled: boolean; cached: number }): void;
   /** Cross-cutting actions views may trigger (lenses, preview lists, navigation). */
   actions: ViewActions;
+  prefs: { labelDensity: LabelDensity; animationSpeed: number };
 }
 
 export interface ViewActions {
@@ -57,7 +59,10 @@ export interface LegendItem {
 export interface ViewInstance {
   update(ctx: ViewContext): void;
   focusNode(id: NoteId): void;
+  /** PNG of what the view shows on screen, at 2x. */
   exportImage(): Promise<Blob>;
+  /** Standalone SVG (SVG views only). */
+  exportSvg?(): string;
   destroy(): void;
 }
 

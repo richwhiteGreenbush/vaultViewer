@@ -43,6 +43,7 @@ export function EmptyState() {
             <VaultPicker />
           </div>
           <p className="muted small">{strings.picker.dropHint}</p>
+          <p className="muted small">{strings.empty.tip}</p>
         </>
       )}
     </section>

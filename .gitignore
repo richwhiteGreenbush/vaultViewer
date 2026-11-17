@@ -8,3 +8,4 @@ public/sample-vault.zip
 fixtures/large-vault*
 *.tsbuildinfo
 *.tmp.*
+lighthouse-report.html

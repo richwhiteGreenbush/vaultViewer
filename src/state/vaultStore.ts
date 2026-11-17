@@ -9,6 +9,9 @@ import type { VaultSource } from '../ingest/types';
 import { parseClientReady } from '../workers/clients';
 import type { LoadProgress, LoadResult } from '../workers/parse.worker';
 import { strings } from '../strings';
+import { useSettingsStore } from './settingsStore';
+import { useViewStore } from './viewStore';
+import { viewById } from '../views/registry';
 
 export interface VaultInfo {
   key: string;
@@ -30,7 +33,11 @@ interface VaultState {
   lastVault: VaultRecord | null;
   /** Restored from cache but the folder needs permission again to pick up changes. */
   needsReconnect: boolean;
+  /** A background rescan (Refresh button or watch) is running. */
+  refreshing: boolean;
   load(source: VaultSource): Promise<void>;
+  /** Rescans an opened folder; only changed, added or removed files are re-parsed. */
+  refresh(): Promise<void>;
   openPicker(): Promise<void>;
   openZipFile(file: File): Promise<void>;
   openFileList(list: FileList): Promise<void>;
@@ -51,25 +58,46 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   error: null,
   lastVault: null,
   needsReconnect: false,
+  refreshing: false,
 
   async load(source) {
     const seq = ++loadSeq;
     const background =
       source.kind === 'handle' && get().info?.key === `handle:${source.name}` && !!get().graph;
-    if (!background) set({ status: 'loading', progress: null, error: null });
+    if (!background) {
+      set({ status: 'loading', progress: null, error: null });
+      // Fetch and evaluate the view's code while the workers parse, not after.
+      void viewById(useViewStore.getState().activeView)?.load();
+    } else set({ refreshing: true });
     try {
       const client = await parseClientReady();
       const result = await client.load(
         source,
-        {},
+        { ignore: useSettingsStore.getState().prefs.ignore },
         Comlink.proxy((p: LoadProgress) => {
           if (seq === loadSeq && !background) set({ progress: p });
         }),
       );
       if (seq !== loadSeq) return;
+      if (source.kind === 'handle') {
+        set({
+          lastVault: {
+            key: result.vaultKey,
+            name: result.vaultName,
+            kind: 'handle',
+            openedAt: Date.now(),
+            handle: source.handle,
+          },
+        });
+      }
+      if (background && !result.changed) {
+        // Nothing changed on disk: keep the current graph (views do not rebuild).
+        set({ refreshing: false, needsReconnect: false });
+        return;
+      }
       const graph = deserializeGraph(result.graph);
       if (graph.stats.noteCount === 0 && source.kind !== 'cache') {
-        set({ status: 'error', error: strings.errors.empty, progress: null });
+        set({ status: get().graph ? 'ready' : 'error', error: strings.errors.empty, progress: null });
         return;
       }
       set({
@@ -78,6 +106,8 @@ export const useVaultStore = create<VaultState>((set, get) => ({
         graph,
         vaultHash: result.vaultHash,
         needsReconnect: false,
+        refreshing: false,
+        error: null,
         info: {
           key: result.vaultKey,
           name: result.vaultName,
@@ -95,8 +125,17 @@ export const useVaultStore = create<VaultState>((set, get) => ({
       };
     } catch (e) {
       if (seq !== loadSeq) return;
+      if (background) {
+        // A failed rescan (e.g. permission revoked, folder moved) keeps the graph and asks to reconnect.
+        set({ refreshing: false, needsReconnect: true, error: strings.refresh.revoked });
+        return;
+      }
       console.error(e);
-      set({ status: 'error', progress: null, error: e instanceof Error ? e.message : String(e) });
+      set({
+        status: get().graph ? 'ready' : 'error',
+        progress: null,
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
   },
 
@@ -158,6 +197,16 @@ export const useVaultStore = create<VaultState>((set, get) => ({
         set({ needsReconnect: true });
       }
     }
+  },
+
+  async refresh() {
+    const { lastVault: last, info, refreshing, status } = get();
+    if (refreshing || status === 'loading' || !last?.handle || info?.kind !== 'handle') return;
+    if (!(await ensureReadPermission(last.handle, false).catch(() => false))) {
+      set({ needsReconnect: true, error: strings.refresh.revoked });
+      return;
+    }
+    await get().load({ kind: 'handle', name: last.name, handle: last.handle });
   },
 
   /** Needs a user gesture: re-requests folder permission and rescans (only changed files are parsed). */

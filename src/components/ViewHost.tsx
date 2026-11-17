@@ -3,6 +3,8 @@ import { useVaultStore } from '../state/vaultStore';
 import { useViewStore } from '../state/viewStore';
 import { useLensStore, visibleFor } from '../state/lensStore';
 import { useThemeStore } from '../state/themeStore';
+import { useSettingsStore } from '../state/settingsStore';
+import { setActiveViewInstance } from '../views/active';
 import { viewById } from '../views/registry';
 import type { ViewContext, ViewInstance } from '../views/types';
 import { layoutClient } from '../workers/clients';
@@ -19,6 +21,8 @@ export function ViewHost() {
   const lens = useLensStore((s) => s.lens);
   const theme = useThemeStore((s) => s.theme);
   const reducedMotion = useThemeStore((s) => s.reducedMotion);
+  const labelDensity = useSettingsStore((s) => s.prefs.labelDensity);
+  const animationSpeed = useSettingsStore((s) => s.prefs.animationSpeed);
 
   const ctx = useMemo<ViewContext | null>(() => {
     if (!graph || !vaultHash) return null;
@@ -37,6 +41,7 @@ export function ViewHost() {
       onActivate: () => setPreviewOpen(true),
       onHover: setHover,
       onLayoutStatus: setLayout,
+      prefs: { labelDensity, animationSpeed },
       actions: {
         includeTag: (tag) =>
           setLens((l) => {
@@ -54,7 +59,7 @@ export function ViewHost() {
         },
       },
     };
-  }, [graph, vaultHash, lens, theme, focus, focusDepth, reducedMotion]);
+  }, [graph, vaultHash, lens, theme, focus, focusDepth, reducedMotion, labelDensity, animationSpeed]);
 
   const ctxRef = useRef(ctx);
   useEffect(() => {
@@ -71,11 +76,13 @@ export function ViewHost() {
     void entry.load().then((mod) => {
       if (cancelled || !ctxRef.current) return;
       instance.current = mod.mount(host, ctxRef.current);
+      setActiveViewInstance(instance.current);
     });
     return () => {
       cancelled = true;
       instance.current?.destroy();
       instance.current = null;
+      setActiveViewInstance(null);
       // The host element is reused by the next view: clear state attributes the old view set.
       for (const attr of ['data-layout', 'data-nodes', 'data-visible-nodes', 'data-focus-size'])
         host.removeAttribute(attr);

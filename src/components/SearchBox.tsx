@@ -3,9 +3,27 @@ import Fuse from 'fuse.js';
 import { strings } from '../strings';
 import { useVaultStore } from '../state/vaultStore';
 import { useViewStore } from '../state/viewStore';
-import type { Note } from '../core/model';
+import type { Note, VaultGraph } from '../core/model';
 
 const MAX_RESULTS = 8;
+
+const indexes = new WeakMap<VaultGraph, Fuse<Note>>();
+function fuseFor(graph: VaultGraph): Fuse<Note> {
+  let f = indexes.get(graph);
+  if (!f) {
+    f = new Fuse([...graph.notes.values()], {
+      keys: [
+        { name: 'title', weight: 3 },
+        { name: 'aliases', weight: 2 },
+        { name: 'tags', weight: 1 },
+      ],
+      threshold: 0.35,
+      ignoreLocation: true,
+    });
+    indexes.set(graph, f);
+  }
+  return f;
+}
 
 /** Fuzzy search over titles, aliases and tags. `/` or Ctrl/Cmd+K focuses it; Enter focuses the top result. */
 export function SearchBox() {
@@ -15,25 +33,15 @@ export function SearchBox() {
   const [open, setOpen] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
-  const fuse = useMemo(
-    () =>
-      graph
-        ? new Fuse([...graph.notes.values()], {
-            keys: [
-              { name: 'title', weight: 3 },
-              { name: 'aliases', weight: 2 },
-              { name: 'tags', weight: 1 },
-            ],
-            threshold: 0.35,
-            ignoreLocation: true,
-          })
-        : null,
-    [graph],
-  );
-  const results: Note[] = useMemo(
-    () => (fuse && query.trim() ? fuse.search(query.trim(), { limit: MAX_RESULTS }).map((r) => r.item) : []),
-    [fuse, query],
-  );
+  // The index is built on the first search, not when a vault loads: on 5,000 notes it costs ~100 ms of
+  // main-thread time that would otherwise land right after parsing.
+  const results: Note[] = useMemo(() => {
+    const q = query.trim();
+    if (!graph || !q) return [];
+    return fuseFor(graph)
+      .search(q, { limit: MAX_RESULTS })
+      .map((r) => r.item);
+  }, [graph, query]);
 
   const choose = (note: Note | undefined) => {
     if (!note) return;

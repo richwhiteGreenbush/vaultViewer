@@ -2,7 +2,7 @@ import type { DateField } from '../../core/lens/applyLenses';
 import type { Note } from '../../core/model';
 import { strings } from '../../strings';
 import type { ViewContext, ViewInstance, ViewModule } from '../types';
-import { svgToPng } from '../shared/svgExport';
+import { svgToPng, svgToString } from '../shared/svgExport';
 import { calendarLayout, moveDate, type CalendarLayout } from './layout';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -202,6 +202,10 @@ class CalendarView implements ViewInstance {
 
   exportImage(): Promise<Blob> {
     return svgToPng(this.svg, this.ctx.theme.background);
+  }
+
+  exportSvg(): string {
+    return svgToString(this.svg, this.ctx.theme.background);
   }
 
   destroy(): void {

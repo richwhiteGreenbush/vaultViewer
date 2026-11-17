@@ -10,6 +10,8 @@ import {
   Text,
   Texture,
 } from 'pixi.js';
+import { captureScreen } from './screenshot';
+import { yieldToBrowser } from './yield';
 import type { NoteId } from '../../core/model';
 import type { ThemePalette } from '../../core/color/palettes';
 import { hexToNumber } from '../../core/color/tagColor';
@@ -18,10 +20,11 @@ import type { ViewContext, ViewInstance } from '../types';
 import { fitBounds, toWorld, zoomAt, type Camera } from './camera';
 import { noteColor, recencyGlow } from './encodings';
 import { radialTexture, shade, tailTexture } from './textures';
+import { AnimClock, labelBudget } from './prefs';
+import { Fader, snapshotNodes } from './fade';
 
 export const TEX_R = 32;
 const LABEL_ZOOM = 0.9;
-const MAX_LABELS = 160;
 const CLICK_SLOP = 4;
 export const DIM = 0.15;
 const EASE_MS = 450;
@@ -90,7 +93,8 @@ export abstract class PixiScene implements ViewInstance {
   protected pos: Float32Array<ArrayBufferLike> = new Float32Array(0);
   protected colors: string[] = [];
   protected sprites: Sprite[] = [];
-  protected glows: Sprite[] = [];
+  /** Created only for nodes that glow in the current theme. */
+  protected glows: (Sprite | undefined)[] = [];
   protected glowLevel: Float32Array<ArrayBufferLike> = new Float32Array(0);
   protected recency: Float32Array<ArrayBufferLike> = new Float32Array(0);
   protected visibleMask = new Uint8Array(0);
@@ -177,6 +181,8 @@ export abstract class PixiScene implements ViewInstance {
     this.el.appendChild(canvas);
     this.gpu = this.app.renderer.type !== RendererType.CANVAS;
 
+    await yieldToBrowser();
+    if (this.destroyed) return;
     this.tex = {
       disc: this.app.renderer.generateTexture({
         target: new Graphics().circle(0, 0, TEX_R).fill(0xffffff),
@@ -209,6 +215,7 @@ export abstract class PixiScene implements ViewInstance {
       this.edgeLayer,
       this.glowLayer,
       this.nodeLayer,
+      this.fadeLayer,
       this.over,
       this.focusRing,
       this.labelLayer,
@@ -227,11 +234,14 @@ export abstract class PixiScene implements ViewInstance {
         };
       },
     };
+    await yieldToBrowser();
+    if (this.destroyed) return;
     this.build();
   }
 
   protected build(): void {
     const l = this.layout();
+    this.built = true;
     this.ids = l.ids;
     this.index = new Map(this.ids.map((id, i) => [id, i]));
     this.radius = l.radius;
@@ -247,7 +257,7 @@ export abstract class PixiScene implements ViewInstance {
       return s;
     };
     this.sprites = this.ids.map(() => make(this.nodeLayer));
-    this.glows = this.ids.map(() => make(this.glowLayer));
+    this.glows = new Array(this.ids.length);
 
     this.edgeLayer.removeChildren().forEach((c) => c.destroy());
     this.meshes = [];
@@ -273,14 +283,18 @@ export abstract class PixiScene implements ViewInstance {
     }
 
     this.el.dataset.nodes = String(this.ids.length);
-    this.userMovedCamera = false;
+    this.baseAlpha = new Float32Array(this.ids.length);
     this.decorate();
     this.themeStyle();
     this.visibilityStyle();
     this.animate(this.ctx.reducedMotion ? 0 : performance.now());
     this.positionsDirty = true;
-    this.fit();
-    this.focusOnMount();
+    if (!this.keepCameraOnBuild) {
+      this.userMovedCamera = false;
+      this.fit();
+      this.focusOnMount();
+    }
+    this.keepCameraOnBuild = false;
     this.el.dataset.layout = 'settled'; // layouts here are computed synchronously
     this.ctx.onLayoutStatus?.({ settled: true, cached: 0 });
   }
@@ -303,7 +317,13 @@ export abstract class PixiScene implements ViewInstance {
       const glow = (this.recency[i] as number) * theme.glowStrength;
       this.glowLevel[i] = glow > 0.02 ? glow : 0;
       if (glow > 0.02) {
-        const g = this.glows[i] as Sprite;
+        let g = this.glows[i];
+        if (!g) {
+          g = new Sprite();
+          g.anchor.set(0.5);
+          this.glowLayer.addChild(g);
+          this.glows[i] = g;
+        }
         g.texture = this.tex.glow;
         g.scale.set((r * (2.4 + glow * 1.6)) / 64);
         g.tint = color;
@@ -349,9 +369,12 @@ export abstract class PixiScene implements ViewInstance {
       const body = this.sprites[i] as Sprite;
       body.visible = vis;
       body.alpha = (isNote ? (watercolor ? 0.78 : 0.95) : 0.75) * dim;
-      const g = this.glows[i] as Sprite;
-      g.visible = vis && (this.glowLevel[i] as number) > 0;
-      if (g.visible) g.alpha = (this.glowLevel[i] as number) * 0.7 * dim;
+      this.baseAlpha[i] = body.alpha;
+      const g = this.glows[i];
+      if (g) {
+        g.visible = vis && (this.glowLevel[i] as number) > 0;
+        if (g.visible) g.alpha = (this.glowLevel[i] as number) * 0.7 * dim;
+      }
     }
     this.el.dataset.visibleNodes = String(shown);
 
@@ -396,8 +419,18 @@ export abstract class PixiScene implements ViewInstance {
 
   // ---- frame -------------------------------------------------------------------------------------------
 
+  private clock = new AnimClock();
+  private fadeLayer = new Container();
+  private fader = new Fader(this.fadeLayer);
+  private baseAlpha = new Float32Array(0);
+  private keepCameraOnBuild = false;
+
+  private built = false;
+
   private frame(): void {
-    const now = performance.now();
+    if (!this.built) return; // the ticker starts before the (yielded) first build
+    const real = performance.now();
+    const now = this.clock.tick(this.ctx.prefs.animationSpeed); // ambient time, scaled by Settings
     if (!this.ctx.reducedMotion && this.animate(now)) {
       this.positionsDirty = true;
       if (now - this.lastLabelTick > 66) {
@@ -405,15 +438,14 @@ export abstract class PixiScene implements ViewInstance {
         this.lastLabelTick = now;
       }
     }
-    if (this.cameraAnim) this.stepCamera(now);
+    if (this.cameraAnim) this.stepCamera(real);
     if (this.positionsDirty) {
       const n = this.ids.length;
       for (let i = 0; i < n; i++) {
         const x = this.pos[i * 2] as number;
         const y = this.pos[i * 2 + 1] as number;
         (this.sprites[i] as Sprite).position.set(x, y);
-        if (this.visibleMask[i] && (this.glowLevel[i] as number) > 0)
-          (this.glows[i] as Sprite).position.set(x, y);
+        if (this.visibleMask[i] && (this.glowLevel[i] as number) > 0) this.glows[i]?.position.set(x, y);
       }
       for (const { mesh } of this.meshes) mesh.geometry.positions = this.pos as Float32Array<ArrayBuffer>;
       if (this.edgeGraphics) this.drawEdgesCanvas(this.edgeGraphics);
@@ -423,9 +455,11 @@ export abstract class PixiScene implements ViewInstance {
       const k = 0.85 + 0.15 * Math.sin(now / 600);
       for (const i of this.pulse) {
         const dim = this.hood && !this.hoodMask[i] ? DIM : 1;
-        (this.glows[i] as Sprite).alpha = (this.glowLevel[i] as number) * 0.7 * k * dim;
+        const g = this.glows[i];
+        if (g) g.alpha = (this.glowLevel[i] as number) * 0.7 * k * dim;
       }
     }
+    if (this.fader.active) this.fader.step(this.sprites, (i) => this.baseAlpha[i] as number);
     const f = this.ctx.focus ? this.index.get(this.ctx.focus) : undefined;
     this.focusRing.visible = f !== undefined && this.visibleMask[f] === 1;
     if (f !== undefined && this.focusRing.visible) {
@@ -461,7 +495,8 @@ export abstract class PixiScene implements ViewInstance {
 
   private drawLabels(): void {
     const { scale } = this.camera;
-    const zoomedIn = scale >= this.labelZoom || (this.labelSmallVaults && this.ids.length <= 60);
+    const budget = labelBudget(this.ctx.prefs.labelDensity, this.labelZoom);
+    const zoomedIn = scale >= budget.zoom || (this.labelSmallVaults && this.ids.length <= 60);
     const { width: w, height: h } = this.app.screen;
     const tl = toWorld(this.camera, 0, 0);
     const br = toWorld(this.camera, w, h);
@@ -485,7 +520,7 @@ export abstract class PixiScene implements ViewInstance {
       more.sort((a, b) => (this.radius[b] as number) - (this.radius[a] as number));
       picked = picked.concat(more);
     }
-    picked.length = Math.min(picked.length, MAX_LABELS);
+    picked.length = Math.min(picked.length, budget.max);
     while (this.labels.length < picked.length) {
       const t = new Text({
         text: '',
@@ -738,7 +773,13 @@ export abstract class PixiScene implements ViewInstance {
     void this.ready.then(() => {
       if (this.destroyed) return;
       if (ctx.graph !== prev.graph) {
+        // Same vault refreshed (watch / Refresh): keep the camera and fade changes in and out.
+        const sameVault = ctx.graph.vaultName === prev.graph.vaultName && this.ids.length > 0;
+        const snap = sameVault ? snapshotNodes(this.ids, this.pos, this.sprites) : null;
+        this.keepCameraOnBuild = sameVault;
         this.build();
+        this.fader.begin(snap, this.ids);
+        this.el.dataset.fadingIn = String(this.fader.incomingCount);
         return;
       }
       if (ctx.theme !== prev.theme) {
@@ -755,6 +796,7 @@ export abstract class PixiScene implements ViewInstance {
       }
       if (ctx.focus && ctx.focus !== prev.focus) this.flyTo(ctx.focus);
       if (ctx.reducedMotion !== prev.reducedMotion) this.positionsDirty = true;
+      if (ctx.prefs.labelDensity !== prev.prefs.labelDensity) this.labelsDirty = true;
     });
   }
 
@@ -764,13 +806,7 @@ export abstract class PixiScene implements ViewInstance {
 
   async exportImage(): Promise<Blob> {
     await this.ready;
-    const canvas = this.app.renderer.extract.canvas({
-      target: this.app.stage,
-      resolution: 2,
-    }) as HTMLCanvasElement;
-    return new Promise((resolve, reject) =>
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('export failed'))), 'image/png'),
-    );
+    return captureScreen(this.app, this.ctx.theme);
   }
 
   destroy(): void {

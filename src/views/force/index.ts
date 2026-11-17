@@ -11,6 +11,8 @@ import {
   Text,
   Texture,
 } from 'pixi.js';
+import { captureScreen } from '../shared/screenshot';
+import { yieldToBrowser } from '../shared/yield';
 import type { NoteId } from '../../core/model';
 import { hexToNumber } from '../../core/color/tagColor';
 import { neighbourhood } from '../../core/lens/applyLenses';
@@ -19,10 +21,11 @@ import type { ViewContext, ViewInstance, ViewModule } from '../types';
 import { fitBounds, toWorld, zoomAt, type Camera } from '../shared/camera';
 import { nodeOrder, noteColor, noteRadius, recencyGlow } from '../shared/encodings';
 import { radialTexture, shade, tailTexture } from '../shared/textures';
+import { AnimClock, labelBudget } from '../shared/prefs';
+import { Fader, snapshotNodes } from '../shared/fade';
 
 const TEX_R = 32; // radius of the shared circle textures
 const LABEL_ZOOM = 0.9; // labels appear above this zoom level
-const MAX_LABELS = 160;
 const CLICK_SLOP = 4; // px of movement before a press becomes a drag
 const DIM = 0.15; // opacity of nodes outside the focused neighbourhood
 const EASE_MS = 450;
@@ -59,8 +62,9 @@ class ForceView implements ViewInstance {
   private linkIds: string[] = [];
   private linkResolved: boolean[] = [];
   private sprites: Sprite[] = [];
-  private glows: Sprite[] = [];
-  private outlines: Sprite[] = [];
+  private glows: (Sprite | undefined)[] = [];
+  private outlines: (Sprite | undefined)[] = [];
+  private makeSprite: (layer: Container) => Sprite = () => new Sprite();
   private labels: Text[] = [];
   private edgeMeshes = new Map<EdgeKind, Mesh<MeshGeometry>>();
   private edgeIdx: Record<EdgeKind, number[]> = { normal: [], ghost: [], highlight: [] };
@@ -113,6 +117,8 @@ class ForceView implements ViewInstance {
     canvas.style.touchAction = 'none';
     this.el.appendChild(canvas);
 
+    await yieldToBrowser();
+    if (this.destroyed) return;
     this.tex = {
       disc: this.app.renderer.generateTexture({
         target: new Graphics().circle(0, 0, TEX_R).fill(0xffffff),
@@ -140,7 +146,14 @@ class ForceView implements ViewInstance {
     this.focusRing.anchor.set(0.5);
     this.focusRing.visible = false;
 
-    this.world.addChild(this.edges, this.glowLayer, this.tailLayer, this.nodeLayer, this.outlineLayer);
+    this.world.addChild(
+      this.edges,
+      this.glowLayer,
+      this.tailLayer,
+      this.nodeLayer,
+      this.fadeLayer,
+      this.outlineLayer,
+    );
     this.world.addChild(this.focusRing, this.labelLayer);
     this.app.stage.addChild(this.world);
     this.app.ticker.add(() => this.frame());
@@ -157,18 +170,29 @@ class ForceView implements ViewInstance {
         };
       },
     };
+    // Yield between the expensive setup steps so no single main-thread task runs long.
+    await yieldToBrowser();
+    if (this.destroyed) return;
     this.build();
   }
 
   // ---- data ---------------------------------------------------------------------------------------------
 
-  private build(): void {
+  private build(keepCamera = false): void {
     const { graph } = this.ctx;
     this.ids = nodeOrder(graph);
     this.index = new Map(this.ids.map((id, i) => [id, i]));
     this.radius = Float32Array.from(this.ids, (id) => noteRadius(graph.notes.get(id)));
     this.glow = recencyGlow(graph, this.ids);
+    // Start from d3-force's own initial phyllotaxis spiral (not all at 0,0: thousands of overlapping
+    // sprites on the first frame are a heavy GPU stall, and this is where the simulation starts anyway).
     this.pos = new Float32Array(this.ids.length * 2);
+    for (let i = 0; i < this.ids.length; i++) {
+      const r = 10 * Math.sqrt(0.5 + i);
+      const a = i * Math.PI * (3 - Math.sqrt(5));
+      this.pos[i * 2] = r * Math.cos(a);
+      this.pos[i * 2 + 1] = r * Math.sin(a);
+    }
 
     const pairs: number[] = [];
     this.linkResolved = [];
@@ -193,8 +217,10 @@ class ForceView implements ViewInstance {
       return s;
     };
     this.sprites = this.ids.map(() => make(this.nodeLayer));
-    this.glows = this.ids.map(() => make(this.glowLayer));
-    this.outlines = this.ids.map(() => make(this.outlineLayer));
+    // Glow and outline sprites are created only for nodes that need them (most themes need few or none).
+    this.glows = new Array(this.ids.length);
+    this.outlines = new Array(this.ids.length);
+    this.makeSprite = make;
 
     // Orphans become comets.
     this.comets = [];
@@ -220,7 +246,8 @@ class ForceView implements ViewInstance {
       strings.view.canvasLabel(graph.stats.noteCount, graph.stats.linkCount),
     );
     this.el.dataset.nodes = String(this.ids.length);
-    this.userMovedCamera = false;
+    this.userMovedCamera = keepCamera;
+    this.baseAlpha = new Float32Array(this.ids.length);
     this.themeStyle();
     this.visibilityStyle();
     this.startLayout();
@@ -297,7 +324,7 @@ class ForceView implements ViewInstance {
       const glow = (this.glow[i] as number) * theme.glowStrength;
       this.glowLevel[i] = glow > 0.02 ? glow : 0;
       if (glow > 0.02) {
-        const g = this.glows[i] as Sprite;
+        const g = (this.glows[i] ??= this.makeSprite(this.glowLayer));
         g.texture = this.tex.glow;
         g.scale.set((r * (2.4 + glow * 1.6)) / 64);
         g.tint = color;
@@ -305,7 +332,7 @@ class ForceView implements ViewInstance {
         if ((this.glow[i] as number) >= 1) this.pulse.push(i);
       }
       if (theme.id === 'pastel' && note) {
-        const o = this.outlines[i] as Sprite;
+        const o = (this.outlines[i] ??= this.makeSprite(this.outlineLayer));
         o.texture = this.tex.ring;
         o.scale.set((r + 0.6) / TEX_R);
         o.tint = shade(this.colors[i] as string, -0.35);
@@ -363,18 +390,23 @@ class ForceView implements ViewInstance {
       // Watercolor uses soft-edged, slightly translucent discs. (True multiply blending would multiply against
       // the transparent canvas, not the CSS paper behind it, and turn nodes black.)
       body.alpha = (isNote ? (watercolor ? 0.78 : 0.95) : 0.75) * dim;
+      this.baseAlpha[i] = body.alpha;
       const glow = this.glowLevel[i] as number;
-      const g = this.glows[i] as Sprite;
-      g.visible = vis && glow > 0;
-      if (g.visible) {
-        g.alpha = glow * 0.7 * dim;
-        g.position.set(x, y);
+      const g = this.glows[i];
+      if (g) {
+        g.visible = vis && glow > 0;
+        if (g.visible) {
+          g.alpha = glow * 0.7 * dim;
+          g.position.set(x, y);
+        }
       }
-      const o = this.outlines[i] as Sprite;
-      o.visible = vis && pastel && isNote;
-      if (o.visible) {
-        o.alpha = 0.8 * dim;
-        o.position.set(x, y);
+      const o = this.outlines[i];
+      if (o) {
+        o.visible = vis && pastel && isNote;
+        if (o.visible) {
+          o.alpha = 0.8 * dim;
+          o.position.set(x, y);
+        }
       }
     }
     for (const c of this.comets) {
@@ -462,16 +494,22 @@ class ForceView implements ViewInstance {
     this.positionsDirty = true;
   }
 
+  private clock = new AnimClock();
+  private fadeLayer = new Container();
+  private fader = new Fader(this.fadeLayer);
+  private baseAlpha = new Float32Array(0);
+
   private frame(): void {
-    const now = performance.now();
+    const real = performance.now();
+    const now = this.clock.tick(this.ctx.prefs.animationSpeed); // ambient time, scaled by Settings
     if (this.comets.length && (!this.ctx.reducedMotion || this.positionsDirty)) {
       this.moveComets(now);
-      if (!this.ctx.reducedMotion && now - this.lastCometLabels > 66) {
+      if (!this.ctx.reducedMotion && real - this.lastCometLabels > 66) {
         this.labelsDirty = true;
-        this.lastCometLabels = now;
+        this.lastCometLabels = real;
       }
     }
-    if (this.cameraAnim) this.stepCamera(now);
+    if (this.cameraAnim) this.stepCamera(real);
     if (this.positionsDirty) {
       const n = this.ids.length;
       for (let i = 0; i < n; i++) {
@@ -479,8 +517,8 @@ class ForceView implements ViewInstance {
         const y = this.pos[i * 2 + 1] as number;
         (this.sprites[i] as Sprite).position.set(x, y);
         if (this.visibleMask[i]) {
-          (this.glows[i] as Sprite).position.set(x, y);
-          (this.outlines[i] as Sprite).position.set(x, y);
+          this.glows[i]?.position.set(x, y);
+          this.outlines[i]?.position.set(x, y);
         }
       }
       for (const mesh of this.edgeMeshes.values())
@@ -491,11 +529,13 @@ class ForceView implements ViewInstance {
     if (!this.ctx.reducedMotion && this.pulse.length) {
       const k = 0.85 + 0.15 * Math.sin(now / 600);
       for (const i of this.pulse) {
-        const g = this.glows[i] as Sprite;
+        const g = this.glows[i];
+        if (!g) continue;
         const dim = this.hood && !this.hoodMask[i] ? DIM : 1;
         g.alpha = (this.glowLevel[i] as number) * 0.7 * k * dim;
       }
     }
+    if (this.fader.active) this.fader.step(this.sprites, (i) => this.baseAlpha[i] as number);
     const f = this.ctx.focus ? this.index.get(this.ctx.focus) : undefined;
     this.focusRing.visible = f !== undefined && this.visibleMask[f] === 1;
     if (f !== undefined && this.focusRing.visible) {
@@ -538,7 +578,8 @@ class ForceView implements ViewInstance {
 
   private drawLabels(): void {
     const { scale } = this.camera;
-    const zoomedIn = scale >= LABEL_ZOOM || this.ids.length <= 60;
+    const budget = labelBudget(this.ctx.prefs.labelDensity, LABEL_ZOOM);
+    const zoomedIn = scale >= budget.zoom || this.ids.length <= 60;
     const w = this.app.screen.width;
     const h = this.app.screen.height;
     const tl = toWorld(this.camera, 0, 0);
@@ -565,7 +606,7 @@ class ForceView implements ViewInstance {
       more.sort((a, b) => (this.radius[b] as number) - (this.radius[a] as number));
       picked = picked.concat(more);
     }
-    picked.length = Math.min(picked.length, MAX_LABELS);
+    picked.length = Math.min(picked.length, budget.max);
     while (this.labels.length < picked.length) {
       const t = new Text({
         text: '',
@@ -820,7 +861,12 @@ class ForceView implements ViewInstance {
     void this.ready.then(() => {
       if (this.destroyed) return;
       if (ctx.graph !== prev.graph || ctx.vaultHash !== prev.vaultHash) {
-        this.build();
+        // Same vault refreshed (watch / Refresh): keep the camera and fade changes in and out.
+        const sameVault = ctx.graph.vaultName === prev.graph.vaultName && this.ids.length > 0;
+        const snap = sameVault ? snapshotNodes(this.ids, this.pos, this.sprites) : null;
+        this.build(sameVault);
+        this.fader.begin(snap, this.ids);
+        this.el.dataset.fadingIn = String(this.fader.incomingCount);
         return;
       }
       if (ctx.theme !== prev.theme) this.themeStyle();
@@ -834,6 +880,7 @@ class ForceView implements ViewInstance {
         this.el.dataset.visibleNodes = String(ctx.visible.notes.size);
       }
       if (ctx.focus && ctx.focus !== prev.focus) this.flyTo(ctx.focus);
+      if (ctx.prefs.labelDensity !== prev.prefs.labelDensity) this.labelsDirty = true;
     });
   }
 
@@ -843,13 +890,7 @@ class ForceView implements ViewInstance {
 
   async exportImage(): Promise<Blob> {
     await this.ready;
-    const canvas = this.app.renderer.extract.canvas({
-      target: this.app.stage,
-      resolution: 2,
-    }) as HTMLCanvasElement;
-    return new Promise((resolve, reject) =>
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('export failed'))), 'image/png'),
-    );
+    return captureScreen(this.app, this.ctx.theme);
   }
 
   destroy(): void {

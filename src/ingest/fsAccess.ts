@@ -33,15 +33,20 @@ export async function walkDirectory(
   skipDir: (name: string) => boolean,
   accept: (path: string) => boolean,
   prefix = '',
+  onError: (path: string, error: unknown) => void = () => undefined,
 ): Promise<FileItem[]> {
   const out: FileItem[] = [];
   for await (const entry of dir.values()) {
     const path = prefix ? `${prefix}/${entry.name}` : entry.name;
     if (entry.kind === 'directory') {
-      if (!skipDir(entry.name)) out.push(...(await walkDirectory(entry, skipDir, accept, path)));
+      if (!skipDir(entry.name)) out.push(...(await walkDirectory(entry, skipDir, accept, path, onError)));
     } else if (accept(path)) {
-      const file = await entry.getFile();
-      out.push({ path, lastModified: file.lastModified, size: file.size, file });
+      try {
+        const file = await entry.getFile();
+        out.push({ path, lastModified: file.lastModified, size: file.size, file });
+      } catch (e) {
+        onError(path, e); // locked, deleted mid-scan, or unreadable: skip it and keep going
+      }
     }
   }
   return out;

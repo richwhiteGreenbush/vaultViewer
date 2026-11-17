@@ -70,6 +70,44 @@ export const strings = {
   legend: {
     title: 'Legend',
   },
+  settings: {
+    open: 'Settings',
+    title: 'Settings',
+    ignore: 'Ignore folders',
+    ignoreHint:
+      'Comma-separated folder names, skipped when a vault is opened or refreshed. Dot-folders are always skipped.',
+    defaultView: 'Default view',
+    labels: 'Label density',
+    labelsLow: 'Fewer labels',
+    labelsNormal: 'Normal',
+    labelsHigh: 'More labels',
+    speed: 'Animation speed',
+    watch: 'Watch the open folder for changes',
+    clearCache: 'Clear cache',
+    clearHint:
+      'Removes cached notes, layouts and settings from this browser. Your vault files are not touched.',
+    clearConfirm: 'Clear all cached data for Vault Lens in this browser?',
+    done: 'Done',
+  },
+  refresh: {
+    refresh: 'Refresh',
+    refreshing: 'Refreshing…',
+    watching: 'Watching for changes',
+    revoked: 'Folder access was revoked. Reconnect to keep watching.',
+  },
+  exporting: {
+    menu: 'Export',
+    png: 'PNG image of this view',
+    svg: 'SVG of this view',
+    poster: 'Poster (1600 × 900)',
+    json: 'graph.json (no note text)',
+    madeWith: 'Made with Vault Lens',
+  },
+  warnings: {
+    title: 'Warnings',
+    close: 'Close',
+    more: (n: number) => `…and ${n} more`,
+  },
   noteList: {
     back: 'Back to list',
     count: (n: number) => `${n} note${n === 1 ? '' : 's'}`,
@@ -112,6 +150,7 @@ export const strings = {
     heading: 'Open a vault to begin',
     body: 'Pick a folder of markdown notes, drop one here, or upload a .zip. Your notes never leave your device.',
     trySample: 'Try the sample vault',
+    tip: 'Tip: once a vault is open, press 2 for the Galaxy view, or 1–6 to switch views.',
   },
   picker: {
     openFolder: 'Open folder',

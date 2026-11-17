@@ -3,12 +3,19 @@ import { useVaultStore } from '../state/vaultStore';
 import { useViewStore } from '../state/viewStore';
 import { useLensStore, visibleFor } from '../state/lensStore';
 import { isLensActive } from '../core/lens/applyLenses';
+import { useState } from 'react';
+import { useSettingsStore } from '../state/settingsStore';
+import { WarningsDialog } from './WarningsDialog';
 
 export function StatsBar() {
   const graph = useVaultStore((s) => s.graph);
   const info = useVaultStore((s) => s.info);
   const layout = useViewStore((s) => s.layout);
   const lens = useLensStore((s) => s.lens);
+  const watch = useSettingsStore((s) => s.prefs.watch);
+  const refreshing = useVaultStore((s) => s.refreshing);
+  const needsReconnect = useVaultStore((s) => s.needsReconnect);
+  const [warningsOpen, setWarningsOpen] = useState(false);
 
   if (!graph || !info) {
     return (
@@ -45,12 +52,25 @@ export function StatsBar() {
         </span>
       ))}
       {info.warnings.length > 0 && (
-        <span
-          className="stats-bar__warn"
-          title={info.warnings.slice(0, 20).join('\n')}
-          data-testid="stat-warnings"
-        >
-          {strings.stats.warnings(info.warnings.length)}
+        <>
+          <button
+            type="button"
+            className="stats-bar__warn"
+            data-testid="stat-warnings"
+            onClick={() => setWarningsOpen(true)}
+          >
+            {strings.stats.warnings(info.warnings.length)}
+          </button>
+          <WarningsDialog
+            warnings={info.warnings}
+            open={warningsOpen}
+            onClose={() => setWarningsOpen(false)}
+          />
+        </>
+      )}
+      {info.kind === 'handle' && watch && !needsReconnect && (
+        <span className="watching" data-testid="watching">
+          ● {refreshing ? strings.refresh.refreshing : strings.refresh.watching}
         </span>
       )}
       <span className="stats-bar__spacer" />

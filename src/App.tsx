@@ -9,6 +9,11 @@ import { Tooltip } from './components/Tooltip';
 import { DropZone } from './components/DropZone';
 import { FocusAnnouncer } from './components/FocusAnnouncer';
 import { Legend } from './components/Legend';
+import { SettingsDialog } from './components/SettingsDialog';
+import { ErrorBanner } from './components/ErrorBanner';
+import { useSettingsStore } from './state/settingsStore';
+import { initWatcher } from './state/watcher';
+import { hashToLens } from './core/lens/urlState';
 import { views } from './views/registry';
 import { useVaultStore } from './state/vaultStore';
 import { useViewStore } from './state/viewStore';
@@ -25,6 +30,14 @@ export default function App() {
 
   useEffect(() => {
     void useThemeStore.getState().init();
+    // Settings: open the default view unless the URL names one.
+    void useSettingsStore
+      .getState()
+      .init()
+      .then((prefs) => {
+        if (!hashToLens(location.hash).extra.v) useViewStore.getState().setActiveView(prefs.defaultView);
+      });
+    const stopWatcher = initWatcher();
     void useVaultStore.getState().restoreLast();
     // URL hash ⇄ lens, plus the focused note as `n=`.
     const stopSync = syncLensWithUrl(
@@ -76,6 +89,7 @@ export default function App() {
     return () => {
       stopSync();
       stopFocusSync();
+      stopWatcher();
       window.removeEventListener('keydown', onKey);
     };
   }, []);
@@ -90,6 +104,7 @@ export default function App() {
             <>
               <ViewHost />
               <Legend />
+              <ErrorBanner />
             </>
           ) : (
             <EmptyState />
@@ -101,6 +116,7 @@ export default function App() {
       <Tooltip />
       <DropZone />
       <FocusAnnouncer />
+      <SettingsDialog />
     </div>
   );
 }
